@@ -4,8 +4,8 @@ and use as an app locally or deploy via the `rsconnect` package.
 
 ## Components of ShinyValidator
 
-* [ui.R - The "look" of the GUI]()
-* [common.R - Function specifications](validators-functions)
+* [ui.R - The "look" of the GUI](#uir---the-look-of-the-gui)
+* [common.R - Function specifications](#commonr---validators-functions)
 
 ## ui.R - The "look" of the GUI
 
