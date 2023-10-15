@@ -27,6 +27,7 @@ shinyUI(fluidPage(
                    tags$a(href="https://github.com/manybabies/ShinyValidator",
                                                                "For example, link to this app's Github repo.")),
                  p(strong('This is where you can provide specific instructions on how to use'), em('your'), strong('validator.')), 
+                 p('Click', em('Browse'), 'to select the dataset you would like to validate.'),
                  verbatimTextOutput("validator_output")),
         tabPanel("Specification", 
                  p('This is the full text of the specification you have chosen.'),

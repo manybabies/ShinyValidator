@@ -1,6 +1,6 @@
 # ShinyValidator
 Template GUI to validate datasets. Fork this template to customize for your project needs,
-and use as an app locally or deploy via the `rsconnect` package.
+and use as an app locally or deploy via the `rsconnect` package. You can find a live version of this template [here](https://manybabies.shinyapps.io/shinyvalidator/).
 
 ## Components of this repo
 
@@ -17,7 +17,15 @@ The following R packages are required to run the scripts in this repo: `tidyvers
 
 The basic version of the validator is straightforward to use:
 
-1. Go to the template 
+1. Go to the [template version of the app](https://manybabies.shinyapps.io/shinyvalidator/).
+
+2. Select a study from the *Study* drop down menu (e.g. **samplestudy**)
+
+3. Select a format from the *Study Format* drop down menu (e.g. **sampleformat**)
+
+4. Click *Browse* and select a dataset to validate (e.g. **sample_data_valid.csv** or **sample_data_notvalid.csv**)
+
+5. Output window will display whether dataset is valid, and if not valid, which variables/columns need to be fixed.
 
 ## The "look" of the GUI
 

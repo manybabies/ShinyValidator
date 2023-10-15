@@ -1,0 +1,41 @@
+---
+
+#----------------
+# Required fields
+#----------------
+
+- field:        sample_options_variable
+  description:  sample column for the "options" variable type. Specify the options that are permitted for this variable.
+  type:         options
+  options:      ['option_1', 'option_2']
+  example:      "option_1"
+  required:     yes
+  NA_allowed:   no
+  error_message: "The permitted options for this variable are: option_1, option_2"
+  
+- field:        sample_numeric_variable
+  description:  sample column for the "numeric" variable type. 
+  type:         numeric
+  example:      30
+  required:     yes
+  NA_allowed:   no
+  error_message: "This column must contain only numbers"
+  
+- field:        sample_restricted_numeric_variable
+  description:  sample column for the "numeric" variable type, with range restriction. 
+  type:         numeric
+  format:       restricted
+  example:      30
+  required:     yes
+  NA_allowed:   no
+  lowerlimit:   10
+  upperlimit:   30
+  error_message: "This column must contain only numbers"
+  
+- field:        sample_lowercase_variable
+  description:  sample column for the "uncapitalized" variable type.
+  type:         string
+  format:       uncapitalized
+  required:     yes
+  NA_allowed:   yes
+  error_message: "This variable must contain only uncapitalized letters"

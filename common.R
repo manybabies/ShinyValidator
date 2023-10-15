@@ -15,7 +15,7 @@ validate_dataset_field <- function(dataset_contents, field) {
     if (field$field %in% names(dataset_contents)) {
       if (is.na(dataset_contents[[field$field]])){
         if(field$NA_allowed != TRUE){
-          cat(sprintf("Dataset has blank or NA for required field: '%s'.\n",
+          cat(sprintf("Dataset has blank or NA for required column '%s'.\n",
                     field$field))
           return(FALSE)
         }
@@ -33,8 +33,8 @@ validate_dataset_field <- function(dataset_contents, field) {
         }
         if (length(invalid_values)) {
           for (value in invalid_values) {
-            cat(sprintf("Dataset has invalid value '%s' for field '%s'. Please check the specifications!\n",
-                        value, field$field))
+            cat(sprintf("Dataset has invalid value '%s' for the column '%s'. \n \t %s \n",
+                        value, field$field, field$error_message))
           }
           return(FALSE)
         }
@@ -57,31 +57,47 @@ validate_dataset_field <- function(dataset_contents, field) {
         }
         if (length(invalid_values)) {
           for (value in invalid_values) {
-            cat(sprintf("Dataset has invalid value '%s' for field '%s'. Please check the specifications!\n",
-                        value, field$field))
+            cat(sprintf("Dataset has invalid value '%s' for the column '%s'. \n \t %s \n",
+                        value, field$field, field$error_message))
           }
           return(FALSE)
         }
       } else if (field$type == "numeric") {
         field_contents <- dataset_contents[[field$field]]
         if (!(is.numeric(field_contents) || all(is.na(field_contents)))) {
-          cat(sprintf("Dataset has wrong type for numeric field '%s'. Please check the specifications!\n",
-                      field$field))
+          cat(sprintf("Dataset has non-numeric content for the numeric column '%s'.\n \t %s \n",
+                      field$field, field$error_message))
           return(FALSE)
+        }
+        else if (field$type == "numeric") {
+        if (field$format == "restricted"){
+          invalid_values <- filter(dataset_contents[[field$field]], 
+                                   dataset_contents[[field$field]] < field$lowerlimit |
+                                     dataset_contents[[field$field]] > field$upperlimit)
+          if (length(invalid_values)) {
+            for (value in invalid_values) {
+              cat(sprintf("Dataset has invalid value '%s' that exceeds the restricted range for the column '%s'. \n \t %s \n",
+                          value, field$field, field$error_message))
+            }
+            return(FALSE)
+          }
+        }
+            
+          
         }
       } else if (field$type == "string"){
         field_contents <- dataset_contents[[field$field]]
         if (field$format == "uncapitalized"){
           isCap = str_detect(field_contents, "[:upper:]")
           if (TRUE %in% isCap){
-            cat(sprintf("Dataset has a uppercase letter in lowercase-only field '%s'.\n",
-                        field$field))
+            cat(sprintf("Dataset has a uppercase letter in lowercase-only field '%s'.\n \t %s \n",
+                        field$field, field$error_message))
             return(FALSE)
           }
         } 
       } 
     } else {
-      cat(sprintf("Dataset is missing required field: '%s'.\n",
+      cat(sprintf("Dataset is missing required variable: '%s'.\n",
                   field$field))
       return(FALSE)
     }

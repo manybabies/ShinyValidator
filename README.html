@@ -166,19 +166,40 @@ pre code {
 
 <div id="shinyvalidator" class="section level1">
 <h1>ShinyValidator</h1>
-<p>Template GUI to validate datasets. Fork this template to customize for your project needs, and use as an app locally or deploy via the <code>rsconnect</code> package.</p>
-<div id="components-of-shinyvalidator" class="section level2">
-<h2>Components of ShinyValidator</h2>
+<p>Template GUI to validate datasets. Fork this template to customize for your project needs, and use as an app locally or deploy via the <code>rsconnect</code> package. You can find a live version of this template <a href="https://manybabies.shinyapps.io/shinyvalidator/">here</a>.</p>
+<div id="components-of-this-repo" class="section level2">
+<h2>Components of this repo</h2>
 <ul>
-<li><a href="#uir---the-look-of-the-gui">ui.R - The “look” of the GUI</a></li>
+<li><a href="#how-to-use-the-validator">How to use the validator</a></li>
+<li><a href="#the-look-of-the-gui">The “look” of the GUI - ui.R and server.R</a></li>
 <li><a href="#commonr---validators-functions">common.R - Function specifications</a></li>
+<li><a href="#data_specifications-and-yaml-files">data_specifications and yaml files</a></li>
 </ul>
 </div>
-<div id="ui.r---the-look-of-the-gui" class="section level2">
-<h2>ui.R - The “look” of the GUI</h2>
+<div id="dependencies" class="section level2">
+<h2>Dependencies</h2>
+<p>The following R packages are required to run the scripts in this repo: <code>tidyverse</code>, <code>shiny</code>, <code>shinythemes</code>, and <code>yaml</code>. To deploy the app on <a href="https://www.shinyapps.io/">shinyapps.io</a> instead of running it locally, you will also need <code>rsconnect</code>. This application was created using R version 4.1.1.</p>
+</div>
+<div id="how-to-use-the-validator" class="section level2">
+<h2>How to use the validator</h2>
+<p>The basic version of the validator is straightforward to use:</p>
+<ol style="list-style-type: decimal">
+<li><p>Go to the <a href="https://manybabies.shinyapps.io/shinyvalidator/">template version of the app</a>.</p></li>
+<li><p>Select a study from the <em>Study</em> drop down menu (e.g. <strong>samplestudy</strong>)</p></li>
+<li><p>Select a format from the <em>Study Format</em> drop down menu (e.g. <strong>sampleformat</strong>)</p></li>
+<li><p>Click <em>Browse</em> and select a dataset to validate (e.g. <strong>sample_data_valid.csv</strong> or <strong>sample_data_notvalid.csv</strong>)</p></li>
+<li><p>Output window will display whether dataset is valid, and if not valid, which variables/columns need to be fixed.</p></li>
+</ol>
+</div>
+<div id="the-look-of-the-gui" class="section level2">
+<h2>The “look” of the GUI</h2>
+<p><code>ui.r</code> specifies major components of the GUI.</p>
 </div>
 <div id="common.r---validators-functions" class="section level2">
 <h2>common.R - Validator’s Functions</h2>
+</div>
+<div id="data_specifications-and-yaml-files" class="section level2">
+<h2>data_specifications and yaml files</h2>
 </div>
 </div>
 
