@@ -4,8 +4,6 @@ library(yaml)
 
 source("common.R")
 
-
-
 shinyServer(function(input, output, session) {
   output$study_format <- renderUI({
     selectInput("format", label = h4("Study Format"),
@@ -24,9 +22,6 @@ shinyServer(function(input, output, session) {
     fields <- yaml::yaml.load_file(paste0("data_specifications/",
                                           input$study, "_", input$format, 
                                           ".yaml"))
-    
-    
-    # 
   
   
     tryCatch(

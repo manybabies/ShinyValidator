@@ -1,12 +1,11 @@
-
 # load specs
 library(tidyverse)
+library(stringr)
+
 studies <- data_frame(file = dir(path = "data_specifications")) %>%
   mutate(file = str_replace(file, ".yaml", "")) %>%
   separate(file, into = c("study","format"))
 
-# Load required libraries
-library(stringr)
 
 # Main Validation Function
 validate_dataset_field <- function(dataset_contents, field) {
@@ -22,12 +21,14 @@ validate_dataset_field <- function(dataset_contents, field) {
       } else if (field$type == "multiple_options") {
         return(ValidateMultipleOptions(dataset_contents, field))
       } else if (field$type == "numeric") {
-        return(ValidateNumeric(dataset_contents, field))
+        if(field$format == "restricted") {
+          return(ValidateRestricted(dataset_contents, field))
+        } else {
+          return(ValidateNumeric(dataset_contents, field))
+        }
       } else if (field$type == "string") {
         return(ValidateString(dataset_contents, field))
-      } else if (field$type == "restricted") {
-        return(ValidateRestricted(dataset_contents, field))
-      }
+      } 
     } else {
       # Field is missing in the dataset
       cat(sprintf("Dataset is missing required field: '%s'.\n", field$field))
@@ -122,7 +123,6 @@ ValidateString <- function(dataset_contents, field) {
 # Validate "restricted" type
 ValidateRestricted <- function(dataset_contents, field) {
   field_contents <- as.numeric(dataset_contents[[field$field]])
-  print(field_contents)
   
   min <- min(field_contents)
   print(min)
@@ -135,43 +135,25 @@ ValidateRestricted <- function(dataset_contents, field) {
   print(ul)
   
   if(min < ll) {
+    print("FALSE")
     return(FALSE)
   }
   
   if(max > ul) {
+    print("FALSE")
     return(FALSE)
   }
-  
+  print("TRUE")
   return(TRUE)
 }
 
-
-test_dataset <- data.frame(
-  numeric_field = c(10, 20, 30, 40, 50),
-  string_field = c("apple", "banana", "cherry", "date", "elderberry"),
-  options_field = c("opt1", "opt2", "opt1", "opt3", "opt2"),
-  restricted_field = c(15, 25, 20, 20, 20)
-)
-
-# Sample fields specification for testing
-test_fields <- list(
-  list(field = "numeric_field", type = "numeric", required = TRUE, NA_allowed = FALSE),
-  list(field = "string_field", type = "string", required = TRUE, NA_allowed = TRUE, format = "uncapitalized"),
-  list(field = "options_field", type = "options", required = TRUE, options = c("opt1", "opt2"), NA_allowed = FALSE),
-  list(field = "restricted_field", type = "restricted", required = TRUE, lowerlimit = 10, upperlimit = 50, NA_allowed = FALSE)
-)
-
-# Validate dataset's values for all fields
+# Validate data set's values for all fields
 validate_dataset <- function(fields, dataset_contents) {
 
   valid_fields <- map(fields, function(field) {
     validate_dataset_field(dataset_contents, field)
   })
   valid_dataset <- all(unlist(valid_fields))
-  
+  print(valid_dataset)
   return(valid_dataset)
 }
-
-
-
-
