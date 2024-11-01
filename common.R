@@ -155,6 +155,5 @@ validate_dataset <- function(fields, dataset_contents) {
     validate_dataset_field(dataset_contents, field)
   })
   valid_dataset <- all(unlist(valid_fields))
-  print(valid_dataset)
   return(valid_dataset)
 }
