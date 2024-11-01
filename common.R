@@ -125,25 +125,26 @@ ValidateRestricted <- function(dataset_contents, field) {
   field_contents <- as.numeric(dataset_contents[[field$field]])
   
   min <- min(field_contents)
-  print(min)
   max <- max(field_contents)
-  print(max)
   
-  ll <- as.numeric(field$lowerlimit)
-  print(ll)
-  ul <- as.numeric(field$upperlimit)
-  print(ul)
+  lowerLimit <- as.numeric(field$lowerlimit)
+  upperLimit <- as.numeric(field$upperlimit)
   
-  if(min < ll) {
-    print("FALSE")
+  if (!is.numeric(field_contents) && !all(is.na(field_contents))) {  
+    cat(sprintf("Dataset has wrong type for numeric field '%s'. Please check the specifications!\n", field$field))
     return(FALSE)
   }
   
-  if(max > ul) {
-    print("FALSE")
+  if(min < lowerLimit) {
+    cat(sprintf("Dataset has data points beyond the lower limit for numeric field '%s'. Please check the specifications!\n", field$field))
     return(FALSE)
   }
-  print("TRUE")
+  
+  if(max > upperLimit) {
+    cat(sprintf("Dataset has data points beyond the upper limit for numeric field '%s'. Please check the specifications!\n", field$field))
+    return(FALSE)
+  }
+  
   return(TRUE)
 }
 
