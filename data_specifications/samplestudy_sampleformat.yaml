@@ -16,6 +16,7 @@
 - field:        sample_numeric_variable
   description:  sample column for the "numeric" variable type. 
   type:         numeric
+  format:       open
   example:      30
   required:     yes
   NA_allowed:   no
@@ -30,7 +31,7 @@
   NA_allowed:   no
   lowerlimit:   10
   upperlimit:   30
-  error_message: "This column must contain only numbers"
+  error_message: "This column must contain numbers in the range 10 to 30"
   
 - field:        sample_lowercase_variable
   description:  sample column for the "uncapitalized" variable type.
