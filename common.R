@@ -6,7 +6,6 @@ studies <- data_frame(file = dir(path = "data_specifications")) %>%
   mutate(file = str_replace(file, ".yaml", "")) %>%
   separate(file, into = c("study","format"))
 
-
 # Main Validation Function
 validate_dataset_field <- function(dataset_contents, field) {
   if (field$required) {
@@ -96,7 +95,7 @@ ValidateMultipleOptions <- function(dataset_contents, field) {
 ValidateNumeric <- function(dataset_contents, field) {
   field_contents <- dataset_contents[[field$field]]
   
-  if (!is.numeric(field_contents) && !all(is.na(field_contents))) {  
+  if (!is.numeric(field_contents)) {  
     cat(sprintf("Dataset has wrong type for numeric field '%s'. Please check the specifications!\n", field$field))
     return(FALSE)
   }
@@ -130,7 +129,7 @@ ValidateRestricted <- function(dataset_contents, field) {
   lowerLimit <- as.numeric(field$lowerlimit)
   upperLimit <- as.numeric(field$upperlimit)
   
-  if (!is.numeric(field_contents) && !all(is.na(field_contents))) {  
+  if (!is.numeric(field_contents)) {  
     cat(sprintf("Dataset has wrong type for numeric field '%s'. Please check the specifications!\n", field$field))
     return(FALSE)
   }
@@ -150,10 +149,10 @@ ValidateRestricted <- function(dataset_contents, field) {
 
 # Validate data set's values for all fields
 validate_dataset <- function(fields, dataset_contents) {
-
   valid_fields <- map(fields, function(field) {
     validate_dataset_field(dataset_contents, field)
   })
+  
   valid_dataset <- all(unlist(valid_fields))
   return(valid_dataset)
 }

@@ -12,7 +12,7 @@
   required:     yes
   NA_allowed:   no
   error_message: "The permitted options for this variable are: option_1, option_2"
-  
+
 - field:        sample_numeric_variable
   description:  sample column for the "numeric" variable type. 
   type:         numeric
@@ -29,8 +29,8 @@
   example:      30
   required:     yes
   NA_allowed:   no
-  lowerlimit:   10
-  upperlimit:   30
+  lowerlimit:   5
+  upperlimit:   100
   error_message: "This column must contain numbers in the range 10 to 30"
   
 - field:        sample_lowercase_variable
