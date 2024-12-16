@@ -1,0 +1,10 @@
+- field: String Test
+  description: str
+  type: String
+  options: .na
+  format: open
+  lowerlimit: .na
+  upperlimit: .na
+  required: 'Yes'
+  NA_allowed: 'Yes'
+  error_message: str

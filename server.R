@@ -3,6 +3,7 @@ library(tidyverse)
 library(yaml)
 
 source("common.R")
+source("ErrorHandler.R")
 
 # NEW Server
 server <- function(input, output, session) {
@@ -30,12 +31,14 @@ server <- function(input, output, session) {
       stop(safeError(e))
     })
     
-    valid <- validate_dataset(fields, df)
-    
+    validated <- validate_dataset(fields, df)
+    valid <- validated[[1]]
+    issues <- validated[[2]]
     if (valid) {
       cat("\nDataset is valid!")
     } else {
       cat("\nDataset is NOT valid, please correct and try again!")
+      highlight_csv_to_xlsx(df, issues, "/Users/abteen/Desktop/issues.xlsx")
     }
   })
   
@@ -46,20 +49,13 @@ server <- function(input, output, session) {
     if (nVars > 0) {
       for (i in 1:nVars) {
         field_type <- input[[paste0("field_type_", i)]]
+        options <- ifelse(field_type == "Options", input[[paste0("option_input_", i)]], NA)
+        lowerlimit <- ifelse(field_type == "Numeric" && input[[paste0("range_req_", i)]] == "yes", input[[paste0("min_value_", i)]], NA)
+        upperlimit <- ifelse(field_type == "Numeric" && input[[paste0("rage_req_", i)]] == "yes", input[[paste0("max_value_", i)]], NA)
         
-        if (field_type == "Options") {
-          strs <- strsplit(input[[paste0("option_input_", i)]], ",")
-          str_new <- paste(unlist(strs), collapse = ", ")
-        }
-        
-        
-        options <- ifelse(field_type == "Options", str_new, NA)
-        lowerlimit <- ifelse(field_type == "Numeric" && input[[paste0("range_req_", i)]] == "Yes", input[[paste0("min_value_", i)]], NA)
-        upperlimit <- ifelse(field_type == "Numeric" && input[[paste0("rage_req_", i)]] == "Yes", input[[paste0("max_value_", i)]], NA)
-        
-        format <- if (field_type == "Numeric" && input[[paste0("range_req_", i)]] == "Yes") {
-          "ranged"
-        } else if (field_type == "String" && input[[paste0("caped_", i)]] == "Yes") {
+        format <- if (field_type == "Numeric" && input[[paste0("range_req_", i)]] == "yes") {
+          "restricted"
+        } else if (field_type == "String" && input[[paste0("caped_", i)]] == "yes") {
           "capitalized"
         } else {
           "open"
@@ -75,7 +71,7 @@ server <- function(input, output, session) {
           upperlimit = upperlimit,
           required = input[[paste0("is_required_", i)]],
           NA_allowed = input[[paste0("allow_na_", i)]],
-          error_message = input[[paste0("error_message_", i)]]
+          error_message = toString(input[[paste0("error_message_", i)]])
         )
       }
     }
@@ -105,25 +101,40 @@ server <- function(input, output, session) {
           
           # Field Type and global variables
           selectInput(paste0("field_type_", i), "Choose your data type:", 
-                      choices = c("Options", "Numeric", "String")),
+                      choices = c("options", "numeric", "string")),
           selectInput(paste0("is_required_", i), "Is the data type required:", 
-                      choices = c("Yes", "No")),
+                      choices = c("yes", "no")),
           selectInput(paste0("allow_na_", i), "Are NA Values Allowed:", 
-                      choices = c("Yes", "No")),
+                      choices = c("yes", "no")),
           
           conditionalPanel(
             condition = paste0("input.field_type_", i, " == 'Numeric'"),
             selectInput(paste0("range_req_", i), "Are there range restrictions on the input:", 
-                        choices = c("No", "Yes")),
-            
-            numericInput(paste0("min_value_", i), "Minimum Value:", value = 0),
-            numericInput(paste0("max_value_", i), "Maximum Value:", value = 100)
+                        choices = c("no", "yes")),
+          ),
+          
+          conditionalPanel(
+            condition = sprintf("input.range_req_%s == 'yes'", i),
+            numericInput(paste0("min_value_", i), "Minimum Value:", value = NA),
+            numericInput(paste0("max_value_", i), "Maximum Value:", value = NA)
           ),
           
           conditionalPanel(
             condition = paste0("input.field_type_", i, " == 'String'"),
             selectInput(paste0("caped_", i), "Should the input have capitalizations:", 
-                        choices = c("No", "Yes"))
+                        choices = c("no", "yes"))
+          ),
+          
+          conditionalPanel(
+            condition = paste0("input.field_type_", i, " == 'String'"),
+            selectInput(paste0("range_req_string", i), "Are there length restrictions on the input:", 
+                        choices = c("no", "yes")),
+          ),
+          
+          conditionalPanel(
+            condition = sprintf("input.range_req_string%s == 'yes'", i),
+            numericInput(paste0("min_value_", i), "Minimum Length:", value = NA),
+            numericInput(paste0("max_value_", i), "Maximum Length:", value = NA)
           ),
           
           conditionalPanel(
@@ -131,7 +142,7 @@ server <- function(input, output, session) {
             textInput(paste0("option_input_", i), "Enter the name of the options separated by a comma and no space:")
           ),
           
-          textInput(paste0("error_message_", i), "Enter an error message for your data:")
+          textInput(paste0("error_message_", i), "Enter an error message for your data:"),
         )
       })
       
