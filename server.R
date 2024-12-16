@@ -149,9 +149,60 @@ server <- function(input, output, session) {
       do.call(tagList, field_list)
     }
   })
+  
+  output$downloadHighlighted <- downloadHandler(
+    filename = function() {
+      paste("highlighted_issues_", Sys.Date(), ".xlsx", sep = "")
+    },
+    
+    content = function(file) {
+      # File Processing Saftey
+      req(input$file)
+      if (is.null(input$file$datapath) || input$file$datapath == "") {
+        stop("No file provided. Please upload a dataset before attempting to download.")
+      }
+      
+      req(input$study, input$format)
+      yaml_file_path <- paste0("data_specifications/", input$study, "_", input$format, ".yaml")
+      
+      # Specs Processing Saftey
+      if (!file.exists(yaml_file_path)) {
+        stop("The corresponding YAML specification file does not exist. Please check your study and format selection.")
+      }
+      
+      # Data Loading Processing Saftey
+      fields <- tryCatch(
+        yaml::yaml.load_file(yaml_file_path),
+        error = function(e) stop("Failed to load YAML file. Please ensure the file is valid and accessible.")
+      )
+      
+      # Read the uploaded file
+      df <- tryCatch(
+        read_csv(input$file$datapath),
+        error = function(e) stop("Failed to read the uploaded dataset. Please ensure the file is in a valid CSV format.")
+      )
+      
+      validated <- tryCatch(
+        validate_dataset(fields, df),
+        error = function(e) stop("Error during dataset validation: ", e$message)
+      )
+      
+      valid <- validated[[1]]
+      issues <- validated[[2]]
+      
+      if (!valid) {
+        wb <- tryCatch(
+          highlight_csv_to_xlsx(df, issues),
+          error = function(e) stop("Failed to generate the highlighted workbook: ", e$message)
+        )
+        
+        tryCatch(
+          openxlsx::saveWorkbook(wb, file, overwrite = TRUE),
+          error = function(e) stop("Failed to save the workbook: ", e$message)
+        )
+      } else {
+        stop("No issues to highlight. The dataset is valid!")
+      }
+    }
+  )
 }
-
-  
-
-
-  
