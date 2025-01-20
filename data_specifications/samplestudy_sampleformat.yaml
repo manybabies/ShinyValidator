@@ -29,7 +29,7 @@
   example:      30
   required:     yes
   NA_allowed:   no
-  lowerlimit:   5
+  lowerlimit:   0
   upperlimit:   100
   error_message: "This column must contain numbers in the range 10 to 30"
   
@@ -39,4 +39,6 @@
   format:       uncapitalized
   required:     yes
   NA_allowed:   yes
+  lowerlimit:   .na
+  upperlimit:   .na
   error_message: "This variable must contain only uncapitalized letters"
