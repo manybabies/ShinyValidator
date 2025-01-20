@@ -108,7 +108,7 @@ server <- function(input, output, session) {
                       choices = c("yes", "no")),
           
           conditionalPanel(
-            condition = paste0("input.field_type_", i, " == 'Numeric'"),
+            condition = paste0("input.field_type_", i, " == 'numeric'"),
             selectInput(paste0("range_req_", i), "Are there range restrictions on the input:", 
                         choices = c("no", "yes")),
           ),
@@ -120,13 +120,13 @@ server <- function(input, output, session) {
           ),
           
           conditionalPanel(
-            condition = paste0("input.field_type_", i, " == 'String'"),
+            condition = paste0("input.field_type_", i, " == 'string'"),
             selectInput(paste0("caped_", i), "Should the input have capitalizations:", 
                         choices = c("no", "yes"))
           ),
           
           conditionalPanel(
-            condition = paste0("input.field_type_", i, " == 'String'"),
+            condition = paste0("input.field_type_", i, " == 'string'"),
             selectInput(paste0("range_req_string", i), "Are there length restrictions on the input:", 
                         choices = c("no", "yes")),
           ),
@@ -138,7 +138,7 @@ server <- function(input, output, session) {
           ),
           
           conditionalPanel(
-            condition = paste0("input.field_type_", i, " == 'Options'"),
+            condition = paste0("input.field_type_", i, " == 'options'"),
             textInput(paste0("option_input_", i), "Enter the name of the options separated by a comma and no space:")
           ),
           
