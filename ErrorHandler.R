@@ -1,9 +1,7 @@
 library(openxlsx)
 
 highlight_csv_to_xlsx <- function(df, highlight_entries, output_file) {
-
   wb <- createWorkbook()
-  message("Workbook initialized.")
   sheet_name <- "Error Based"
   addWorksheet(wb, sheet_name)
   
@@ -13,9 +11,7 @@ highlight_csv_to_xlsx <- function(df, highlight_entries, output_file) {
   i <- 1
   while (i <= length(highlight_entries) - 1) {
     column_name <- highlight_entries[[i]]
-    print(column_name)
     invalid_value <- highlight_entries[[i+1]]
-    print(invalid_value)
     col_index <- which(names(df) == column_name)
     if (length(col_index) == 0) {
       stop(sprintf("Column '%s' not found in the dataframe. Available columns: %s", 
@@ -43,5 +39,4 @@ highlight_csv_to_xlsx <- function(df, highlight_entries, output_file) {
   
   return(wb)
   saveWorkbook(wb, output_file, overwrite = TRUE)
-  message(sprintf("Workbook saved as '%s'.", output_file))
 }
