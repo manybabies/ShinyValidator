@@ -11,6 +11,12 @@ There are two main sections of this repository. The **Front-end User Information
 * [Dependencies](#dependencies)
 * [How to use the validator](#how-to-use-the-validator)
 * [Step-by-step guide](#step-by-step-guide)
+  1. [Downloading the validator](#downloading-the-validator)
+  2. [Locally deploying your validator](#locally-deploying-your-validator)
+  3. [Customizing your GUI](#customizing-your-GUI)
+  4. [Creating your data template](#creating-your-data-template)
+  5. [Testing your template](#testing-your-template)
+  6. [Troubleshooting and minor adjustments](#troubleshooting-and-minor-adjustments)
 
 
 **Back-end Information**
