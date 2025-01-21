@@ -26,7 +26,7 @@ server <- function(input, output, session) {
     
     tryCatch({
       df <- read_csv(input$file$datapath)
-      cat("Upload successful!\n\n")
+      cat("Dataset uploaded successfully! Reviewing Dataset... \n\n")
     }, error = function(e) {
       stop(safeError(e))
     })
@@ -35,9 +35,9 @@ server <- function(input, output, session) {
     valid <- validated[[1]]
     issues <- validated[[2]]
     if (valid) {
-      cat("\nDataset is valid!")
+      cat("\nDataset is valid! All variables match specifications.")
     } else {
-      cat("\nDataset is NOT valid, please correct and try again!")
+      cat("\nThe dataset is not valid. Please review the specifications and the highlighted error log.")
       highlight_csv_to_xlsx(df, issues, "/Users/abteen/Desktop/issues.xlsx")
     }
   })
@@ -49,16 +49,45 @@ server <- function(input, output, session) {
     if (nVars > 0) {
       for (i in 1:nVars) {
         field_type <- input[[paste0("field_type_", i)]]
-        options <- ifelse(field_type == "Options", input[[paste0("option_input_", i)]], NA)
-        lowerlimit <- ifelse(field_type == "Numeric" && input[[paste0("range_req_", i)]] == "yes", input[[paste0("min_value_", i)]], NA)
-        upperlimit <- ifelse(field_type == "Numeric" && input[[paste0("rage_req_", i)]] == "yes", input[[paste0("max_value_", i)]], NA)
         
-        format <- if (field_type == "Numeric" && input[[paste0("range_req_", i)]] == "yes") {
+        if(field_type == "numeric") {
+          lowerlimit <- ifelse(input[[paste0("range_req_", i)]] == "yes", input[[paste0("min_value_", i)]], NA)
+          upperlimit <- ifelse(input[[paste0("range_req_", i)]] == "yes", input[[paste0("max_value_", i)]], NA)
+        } else {
+          lowerlimit <- ifelse(field_type == "string" && input[[paste0("range_req_string", i)]] == "yes", input[[paste0("min_value_s", i)]], NA)
+          upperlimit <- ifelse(field_type == "string" && input[[paste0("range_req_string", i)]] == "yes", input[[paste0("max_value_s", i)]], NA)
+        }
+
+        options <- c()
+        
+        if (field_type == "options"){
+          stringList <- strsplit(input[[paste0("option_input_", i)]], split = ",")
+          
+          for (j in stringList) {
+            options <- c(options, j)
+          }
+        } 
+        
+        format <- if (field_type == "numeric" && input[[paste0("range_req_", i)]] == "yes") {
           "restricted"
-        } else if (field_type == "String" && input[[paste0("caped_", i)]] == "yes") {
+        } else if (field_type == "string" && input[[paste0("caped_", i)]] == "yes") {
           "capitalized"
+        } else if (field_type == "string" && input[[paste0("caped_", i)]] == "no") {
+          "uncapitalized"
         } else {
           "open"
+        }
+        
+        required <- if(input[[paste0("is_required_", i)]] == 'yes') {
+          TRUE
+        } else {
+          FALSE
+        }
+        
+        NA_allowed <- if(input[[paste0("allow_na_", i)]] == 'yes'){
+          TRUE
+        } else {
+          FALSE
         }
         
         data_list[[i]] <- list(
@@ -69,8 +98,8 @@ server <- function(input, output, session) {
           format = format,
           lowerlimit = lowerlimit,
           upperlimit = upperlimit,
-          required = input[[paste0("is_required_", i)]],
-          NA_allowed = input[[paste0("allow_na_", i)]],
+          required = required,
+          NA_allowed = NA_allowed,
           error_message = toString(input[[paste0("error_message_", i)]])
         )
       }
@@ -108,37 +137,37 @@ server <- function(input, output, session) {
                       choices = c("yes", "no")),
           
           conditionalPanel(
-            condition = paste0("input.field_type_", i, " == 'Numeric'"),
+            condition = paste0("input.field_type_", i, " == 'numeric'"),
             selectInput(paste0("range_req_", i), "Are there range restrictions on the input:", 
                         choices = c("no", "yes")),
           ),
           
           conditionalPanel(
-            condition = sprintf("input.range_req_%s == 'yes'", i),
+            condition = paste0("input.range_req_",i,"== 'yes'"),
             numericInput(paste0("min_value_", i), "Minimum Value:", value = NA),
             numericInput(paste0("max_value_", i), "Maximum Value:", value = NA)
           ),
           
           conditionalPanel(
-            condition = paste0("input.field_type_", i, " == 'String'"),
+            condition = paste0("input.field_type_", i, " == 'string'"),
             selectInput(paste0("caped_", i), "Should the input have capitalizations:", 
                         choices = c("no", "yes"))
           ),
           
           conditionalPanel(
-            condition = paste0("input.field_type_", i, " == 'String'"),
+            condition = paste0("input.field_type_", i, " == 'string'"),
             selectInput(paste0("range_req_string", i), "Are there length restrictions on the input:", 
                         choices = c("no", "yes")),
           ),
           
           conditionalPanel(
-            condition = sprintf("input.range_req_string%s == 'yes'", i),
-            numericInput(paste0("min_value_", i), "Minimum Length:", value = NA),
-            numericInput(paste0("max_value_", i), "Maximum Length:", value = NA)
+            condition = paste0("input.range_req_string",i,"== 'yes'"),
+            numericInput(paste0("min_value_s", i), "Minimum Value:", value = NA),
+            numericInput(paste0("max_value_s", i), "Maximum Value:", value = NA)
           ),
           
           conditionalPanel(
-            condition = paste0("input.field_type_", i, " == 'Options'"),
+            condition = paste0("input.field_type_", i, " == 'options'"),
             textInput(paste0("option_input_", i), "Enter the name of the options separated by a comma and no space:")
           ),
           
@@ -156,7 +185,6 @@ server <- function(input, output, session) {
     },
     
     content = function(file) {
-      # File Processing Saftey
       req(input$file)
       if (is.null(input$file$datapath) || input$file$datapath == "") {
         stop("No file provided. Please upload a dataset before attempting to download.")
@@ -165,18 +193,15 @@ server <- function(input, output, session) {
       req(input$study, input$format)
       yaml_file_path <- paste0("data_specifications/", input$study, "_", input$format, ".yaml")
       
-      # Specs Processing Saftey
       if (!file.exists(yaml_file_path)) {
         stop("The corresponding YAML specification file does not exist. Please check your study and format selection.")
       }
       
-      # Data Loading Processing Saftey
       fields <- tryCatch(
         yaml::yaml.load_file(yaml_file_path),
         error = function(e) stop("Failed to load YAML file. Please ensure the file is valid and accessible.")
       )
       
-      # Read the uploaded file
       df <- tryCatch(
         read_csv(input$file$datapath),
         error = function(e) stop("Failed to read the uploaded dataset. Please ensure the file is in a valid CSV format.")

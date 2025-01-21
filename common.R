@@ -11,21 +11,19 @@ validate_dataset_field <- function(dataset_contents, field) {
   if (field$required) {
     if (field$field %in% names(dataset_contents)) {
       if (any(is.na(dataset_contents[[field$field]])) && !field$NA_allowed) {
-        cat(sprintf("Dataset has blank or NA for required field: '%s'.\n", field$field))
+        cat(sprintf("Dataset has blank or NA for required variable: '%s'.\n", field$field))
         return(list(FALSE, NA))
       }
       
       if (field$type == "options") {
         return(ValidateOption(dataset_contents, field))
-      } else if (field$type == "multiple_options") {
-        return(ValidateMultipleOptions(dataset_contents, field))
       } else if (field$type == "numeric") {
         return(ValidateNumeric(dataset_contents, field))
       } else if (field$type == "string") {
         return(ValidateString(dataset_contents, field))
       }
     } else {
-      cat(sprintf("Dataset is missing required field: '%s'.\n", field$field))
+      cat(sprintf("Dataset is missing required variable: '%s'.\n", field$field))
       return(list(FALSE, NA))
     }
   }
@@ -51,6 +49,7 @@ ValidateOption <- function(dataset_contents, field) {
       column = field$field, 
       invalid_value = invalid_values
     )
+    cat(sprintf("Dataset has wrong type for option variable '%s'. To view these errors, please download the highlighted errors sheet on the left.\n", field$field))
     return(list(FALSE, incorrect))
   }
   
@@ -66,7 +65,7 @@ ValidateNumeric <- function(dataset_contents, field) {
   non_numeric_indices <- which(is.na(numeric_values) & !is.na(field_contents))
   
   if (length(non_numeric_indices) > 0) {
-    cat(sprintf("Dataset has wrong type for numeric field '%s'. Please check the specifications!\n", field$field))
+    cat(sprintf("Dataset has wrong type for numeric variable '%s'. To view these errors, please download the highlighted errors sheet on the left.\n", field$field))
     invalid_content <- c(invalid_content, field_contents[non_numeric_indices])
   }
   
@@ -79,12 +78,12 @@ ValidateNumeric <- function(dataset_contents, field) {
     above_upper <- numeric_values[numeric_values > upperLimit]
     
     if (length(below_lower) > 0) {
-      cat(sprintf("Dataset has data points below the lower limit for numeric field '%s'. Please check the specifications!\n", field$field))
+      cat(sprintf("Dataset has data points below the lower limit for numeric variable '%s'. To view these errors, please download the highlighted errors sheet on the left.\n", field$field))
       invalid_content <- c(invalid_content, below_lower)
     }
     
     if (length(above_upper) > 0) {
-      cat(sprintf("Dataset has data points above the upper limit for numeric field '%s'. Please check the specifications!\n", field$field))
+      cat(sprintf("Dataset has data points above the upper limit for numeric variable '%s'. To view these errors, please download the highlighted errors sheet on the left.\n", field$field))
       invalid_content <- c(invalid_content, above_upper)
     }
   }
@@ -110,7 +109,7 @@ ValidateString <- function(dataset_contents, field) {
     has_upper <- grepl("[[:upper:]]", field_contents)
     
     if (any(has_upper)) {
-      cat(sprintf("Dataset has an uppercase letter in lowercase-only field '%s'.\n", field$field))
+      cat(sprintf("Dataset has an uppercase letter in lowercase-only variable '%s'. To view these errors, please download the highlighted errors sheet on the left.\n", field$field))
       invalid_value <- c(invalid_value, field_contents[has_upper])
     }
   }
@@ -120,7 +119,7 @@ ValidateString <- function(dataset_contents, field) {
     short_strings <- field_contents[nchar(field_contents) < lowerLimit]
     
     if (length(short_strings) > 0) {
-      cat(sprintf("Dataset has strings shorter than the lower limit for field '%s'.\n", field$field))
+      cat(sprintf("Dataset has inputs shorter than the lower character limit for variable '%s'. To view these errors, please download the highlighted errors sheet on the left.\n", field$field))
       invalid_value <- c(invalid_value, short_strings)
     }
   }
@@ -130,7 +129,7 @@ ValidateString <- function(dataset_contents, field) {
     long_strings <- field_contents[nchar(field_contents) > upperLimit]
     
     if (length(long_strings) > 0) {
-      cat(sprintf("Dataset has strings longer than the upper limit for field '%s'.\n", field$field))
+      cat(sprintf("Dataset has inputs longer than the upper character limit for variable '%s'. To view these errors, please download the highlighted errors sheet on the left.\n", field$field))
       invalid_value <- c(invalid_value, long_strings)
     }
   }
