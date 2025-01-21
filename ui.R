@@ -18,8 +18,8 @@ ui <- fluidPage(
                 multiple = FALSE,
                 accept = c("text/csv",
                            "text/comma-separated-values,text/plain",
-                           ".csv"))
-    ),
+                           ".csv")),
+      downloadButton("downloadHighlighted", "Download Highlighted File")),
     mainPanel(
       tabsetPanel(
         tabPanel("Validation Results", 
@@ -29,8 +29,7 @@ ui <- fluidPage(
                           "For example, link to this app's Github repo.")),
                  p(strong("This is where you can provide specific instructions on how to use"), em("your"), strong("validator.")),
                  p("Click", em("Browse"), "to select the dataset you would like to validate."),
-                 verbatimTextOutput("validator_output"),
-                 downloadButton("downloadHighlighted", "Download Highlighted File")),
+                 verbatimTextOutput("validator_output")),
         tabPanel("Specification Creation", 
                  h4("Make a Decision"),
                  numericInput("numVars", "Number of Variables:", value = 0),

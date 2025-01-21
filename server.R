@@ -156,7 +156,6 @@ server <- function(input, output, session) {
     },
     
     content = function(file) {
-      # File Processing Saftey
       req(input$file)
       if (is.null(input$file$datapath) || input$file$datapath == "") {
         stop("No file provided. Please upload a dataset before attempting to download.")
@@ -165,18 +164,15 @@ server <- function(input, output, session) {
       req(input$study, input$format)
       yaml_file_path <- paste0("data_specifications/", input$study, "_", input$format, ".yaml")
       
-      # Specs Processing Saftey
       if (!file.exists(yaml_file_path)) {
         stop("The corresponding YAML specification file does not exist. Please check your study and format selection.")
       }
       
-      # Data Loading Processing Saftey
       fields <- tryCatch(
         yaml::yaml.load_file(yaml_file_path),
         error = function(e) stop("Failed to load YAML file. Please ensure the file is valid and accessible.")
       )
       
-      # Read the uploaded file
       df <- tryCatch(
         read_csv(input$file$datapath),
         error = function(e) stop("Failed to read the uploaded dataset. Please ensure the file is in a valid CSV format.")

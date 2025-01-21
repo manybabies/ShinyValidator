@@ -1,0 +1,10 @@
+- field: ''
+  description: ''
+  type: string
+  options: ~
+  format: uncapitalized
+  lowerlimit: 1
+  upperlimit: 10
+  required: yes
+  NA_allowed: yes
+  error_message: ''
