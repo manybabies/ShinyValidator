@@ -1,0 +1,30 @@
+- field: color
+  description: The color of the observed fish
+  type: options
+  options: .na
+  format: open
+  lowerlimit: .na
+  upperlimit: .na
+  required: 'yes'
+  NA_allowed: 'yes'
+  error_message: 'Allowed values: red,yellow,blue'
+- field: reaction_time_ms
+  description: participant reaction time in milliseconds
+  type: numeric
+  options: .na
+  format: open
+  lowerlimit: .na
+  upperlimit: .na
+  required: 'yes'
+  NA_allowed: 'yes'
+  error_message: 'Min: 300. Max: 10000'
+- field: lab_id
+  description: unique laboratory identifier
+  type: string
+  options: .na
+  format: open
+  lowerlimit: .na
+  upperlimit: .na
+  required: 'yes'
+  NA_allowed: 'yes'
+  error_message: lab_id must be uncapitalized. 3-10 chars

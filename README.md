@@ -69,7 +69,7 @@ For example, you can simply replace the message with your own and click **Reload
 
 You can similarly change any of the other fields by finding where the corresponding code is. The template version of the validator provides a few useful fields that an average user may need, but you can add more if you are familiar with using Markdown.
 
-### Customizing your data template
+### Creating your data template
 
 The last step is to specify your data template, i.e. what columns/variables must a dataset have, and what values are "allowed" for each column/variable. The specifications are stored as .yaml files in the **data_specifications** folder, but **you do not need to hand write the code yourself**!
 
@@ -83,19 +83,31 @@ There are three variable types that the validator can check: **options**, **nume
 
 - Options: This variable type allows you to specify which **exact entries** are allowed. For instance, if I have a variable called "color," and the only possible values are "red", "yellow", and "blue", I would specify as such:
 
-<img src = "README_images/options.png" alt = "" width = "200" height = "400">
+<img src = "README_images/options.png" alt = "" width = "300" height = "500">
 
 - Numeric: This variable type allows you to specify that a particular column can only take numeric values. In addition, you can create a range restriction to further constrain the maximum and minimum values that are allowed. For instance, if I have a variable "reaction_time_ms" with a minimum value of 300 and a maximum of 10000, I would specify as such:
 
-<img src = "README_images/numeric.png" alt = "" width = "200" height = "400">
+<img src = "README_images/numeric.png" alt = "" width = "300" height = "500">
 
 - String: This variable type allows for open-ended entries (useful if it is impractical to list out all possible entries), but can be used to place restrictions on capitalization as well as maximum character length. For instance, if I am conducting a large-scale collaborative project where I collect individual lab ids, I may want to allow for open-ended entries for labs to choose what they would like to be called (lab_id). That said, I may want a character limit (e.g. 10 characters) so people don't get too creative, and want to remove all capitalization for easier processing. I would then specify as such:
 
-<img src = "README_images/string.png" alt = "" width = "200" height = "400">
+<img src = "README_images/string.png" alt = "" width = "300" height = "500">
 
+After specifying all your variables, you can click the **Download Setup** button to download a copy of your .yaml file. The final thing to do is to move the .yaml file into the **data_specifications** folder, and rename it following this naming scheme: *studyname_formatname*. For example, if this particular data template is for a study called "fishspeed" and this is the raw data file, I would name this .yaml file *FishSpeed_RawData*. **Note: the file name must not contain spaces or special characters. Use capitalization to separate words**
 
+Once you place the renamed .yaml file in the **data_specifications** folder, relaunch your app. You should now be able to find your study and format in the dropdown menu on the left!
 
+<img src = "README_images/completed_yaml.png" alt = "">
 
+### Testing your template
+
+The final step is to test your newly created template. Create a .csv file that contains all of the relevant columns (or, if you have an existing dataset, use that!). Created one row that contains zero errors (i.e. perfect data entry), and a few rows that contain some errors you anticipate seeing.
+
+In your app, click **Browse** and navigate to this sample dataset. It should correctly identify all the errors you intentionally made. For easier comparisons, click the **Download Highlighted File** button to download a spreadsheet that highlights all errors.
+
+### Troubleshooting and minor adjustments
+
+After testing your template, if you noticed something is not working as intended (or if you overlooked a specification that you need), you can either remake the entire template following the steps above, or manually make adjustments by opening the .yaml file. The .yaml file is simply a less user-friendly version of the specification creation page.
 
 ## common.R - Validator's Functions
 
