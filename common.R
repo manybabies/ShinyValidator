@@ -45,7 +45,7 @@ ValidateOption <- function(dataset_contents, field) {
   }
   
   if (length(invalid_values) > 0) {
-    incorrect <- data.frame(
+    incorrect <- list(
       column = field$field, 
       invalid_value = invalid_values
     )
@@ -89,7 +89,7 @@ ValidateNumeric <- function(dataset_contents, field) {
   }
   
   if (length(invalid_content) > 0) {
-    incorrect <- data.frame(
+    incorrect <- list(
       column = field$field, 
       invalid_value = invalid_content
     )
@@ -135,7 +135,7 @@ ValidateString <- function(dataset_contents, field) {
   }
   
   if (length(invalid_value) > 0) {
-    incorrect <- data.frame(
+    incorrect <- list(
       column = field$field, 
       invalid_value = invalid_value
     )
