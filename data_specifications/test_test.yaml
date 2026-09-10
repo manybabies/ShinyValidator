@@ -1,0 +1,37 @@
+- field: participant_id
+  description: Participant identification number
+  type: string
+  options: []
+  format: regex
+  pattern: '^ABC[0-9]+$'
+  lowerlimit: NA
+  upperlimit: NA
+  required: true
+  NA_allowed: false
+  error_message: Participant ID must start with ABC followed by numbers.
+
+- field: age
+  description: Participant age
+  type: numeric
+  options: []
+  format: restricted
+  pattern: NA
+  lowerlimit: 1
+  upperlimit: 100
+  required: true
+  NA_allowed: false
+  error_message: Age must be between 1 and 100.
+
+- field: condition
+  description: Experimental condition
+  type: options
+  options:
+    - control
+    - treatment
+  format: open
+  pattern: NA
+  lowerlimit: NA
+  upperlimit: NA
+  required: true
+  NA_allowed: false
+  error_message: Condition must be control or treatment.

@@ -366,9 +366,22 @@ ValidateRegex <- function(dataset_contents, field) {
   ]
   
   # Check whether the regex itself is valid
+  print(field$pattern)
+  print(class(field$pattern))
+  
+  # Check whether the regex itself is valid
   regex_valid <- tryCatch(
-    grepl(field$pattern, "", perl = TRUE),
-    error = function(e) FALSE
+    {
+      grepl(
+        field$pattern,
+        "",
+        perl = TRUE
+      )
+      TRUE
+    },
+    error = function(e) {
+      FALSE
+    }
   )
   
   if (!regex_valid) {

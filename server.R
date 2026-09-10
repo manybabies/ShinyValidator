@@ -277,24 +277,61 @@ server <- function(input, output, session) {
               ),
               
               fluidRow(
-                
                 column(
                   width = 6,
-                  
                   numericInput(
                     paste0("min_value_", i),
                     "Minimum:",
                     value = NA
                   )
                 ),
-                
                 column(
                   width = 6,
-                  
                   numericInput(
                     paste0("max_value_", i),
                     "Maximum:",
                     value = NA
+                  )
+                )
+              )
+            ),
+
+            selectInput(
+              paste0("allow_decimals_", i),
+              "Are decimals allowed?",
+              choices = c(
+                "No" = "no",
+                "Yes" = "yes"
+              ),
+              selected = "no"
+            ),
+            
+            conditionalPanel(
+              condition = paste0(
+                "input.allow_decimals_", i,
+                " == 'yes'"
+              ),
+              
+              h5("Decimal Places"),
+              
+              fluidRow(
+                column(
+                  width = 6,
+                  selectInput(
+                    paste0("min_decimals_", i),
+                    "Minimum:",
+                    choices = 0:6,
+                    selected = 0
+                  )
+                ),
+                
+                column(
+                  width = 6,
+                  selectInput(
+                    paste0("max_decimals_", i),
+                    "Maximum:",
+                    choices = 0:6,
+                    selected = 6
                   )
                 )
               )
