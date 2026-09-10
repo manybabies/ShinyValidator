@@ -22,10 +22,261 @@ server <- function(input, output, session) {
                 choices = filter(studies, study == input$study)$format)
   })
   
-  output$specification <- renderPrint({
+  output$specification <- renderUI({
+    
     req(input$study, input$format)
-    yaml_file_path <- paste0("data_specifications/", input$study, "_", input$format, ".yaml")
-    yaml::yaml.load_file(yaml_file_path)
+    
+    yaml_file_path <- paste0(
+      "data_specifications/",
+      input$study,
+      "_",
+      input$format,
+      ".yaml"
+    )
+    
+    req(file.exists(yaml_file_path))
+    
+    fields <- yaml::yaml.load_file(yaml_file_path)
+    
+    # Human-readable labels
+    type_labels <- c(
+      options = "Options",
+      numeric = "Numeric",
+      string = "Text"
+    )
+    
+    tagList(
+      
+      h3("Dataset Specification"),
+      
+      p(
+        "The following describes the requirements for each variable ",
+        "in this dataset."
+      ),
+      
+      lapply(fields, function(field) {
+        
+        # ------------------------------------------------------------
+        # Basic information
+        # ------------------------------------------------------------
+        
+        field_name <- field$field
+        
+        field_type <- if (!is.null(field$type)) {
+          type_labels[[field$type]]
+        } else {
+          "Not specified"
+        }
+        
+        required_text <- if (isTRUE(field$required)) {
+          "Yes"
+        } else {
+          "No"
+        }
+        
+        na_text <- if (isTRUE(field$NA_allowed)) {
+          "Yes"
+        } else {
+          "No"
+        }
+        
+        # ------------------------------------------------------------
+        # Build validation requirements
+        # ------------------------------------------------------------
+        
+        requirements <- list()
+        
+        requirements[[length(requirements) + 1]] <- tags$li(
+          tags$strong("Required: "),
+          required_text
+        )
+        
+        requirements[[length(requirements) + 1]] <- tags$li(
+          tags$strong("Data type: "),
+          field_type
+        )
+        
+        requirements[[length(requirements) + 1]] <- tags$li(
+          tags$strong("Missing values allowed: "),
+          na_text
+        )
+        
+        # ------------------------------------------------------------
+        # Options
+        # ------------------------------------------------------------
+        
+        if (field$type == "options") {
+          
+          options <- field$options
+          
+          if (is.list(options)) {
+            options <- unlist(
+              options,
+              use.names = FALSE
+            )
+          }
+          
+          options <- as.character(options)
+          
+          requirements[[length(requirements) + 1]] <- tags$li(
+            tags$strong("Allowed values: "),
+            paste(
+              options,
+              collapse = ", "
+            )
+          )
+        }
+        
+        # ------------------------------------------------------------
+        # Numeric
+        # ------------------------------------------------------------
+        
+        if (field$type == "numeric") {
+          
+          if (
+            !is.null(field$format) &&
+            field$format == "restricted"
+          ) {
+            
+            requirements[[length(requirements) + 1]] <- tags$li(
+              tags$strong("Allowed range: "),
+              paste0(
+                field$lowerlimit,
+                " to ",
+                field$upperlimit
+              )
+            )
+          }
+          
+          if (
+            !is.null(field$allow_decimals) &&
+            field$allow_decimals == "no"
+          ) {
+            
+            requirements[[length(requirements) + 1]] <- tags$li(
+              tags$strong("Decimal values: "),
+              "Not allowed"
+            )
+            
+          } else if (
+            !is.null(field$allow_decimals) &&
+            field$allow_decimals == "yes"
+          ) {
+            
+            min_decimals <- field$min_decimals
+            max_decimals <- field$max_decimals
+            
+            decimal_text <- if (
+              min_decimals == max_decimals
+            ) {
+              paste0(
+                min_decimals,
+                " decimal place",
+                if (min_decimals != 1) "s" else ""
+              )
+            } else {
+              paste0(
+                min_decimals,
+                "–",
+                max_decimals,
+                " decimal places"
+              )
+            }
+            
+            requirements[[length(requirements) + 1]] <- tags$li(
+              tags$strong("Decimal places: "),
+              decimal_text
+            )
+          }
+        }
+        
+        # ------------------------------------------------------------
+        # String
+        # ------------------------------------------------------------
+        
+        if (field$type == "string") {
+          
+          validation_text <- switch(
+            field$format,
+            
+            uncapitalized = "Lowercase only",
+            capitalized = "Uppercase only",
+            regex = "Must match the specified pattern",
+            open = "Open text",
+            field$format
+          )
+          
+          requirements[[length(requirements) + 1]] <- tags$li(
+            tags$strong("Text format: "),
+            validation_text
+          )
+          
+          if (!is.null(field$pattern) &&
+              !is.na(field$pattern)) {
+            
+            requirements[[length(requirements) + 1]] <- tags$li(
+              tags$strong("Pattern: "),
+              tags$code(field$pattern)
+            )
+          }
+          
+          if (
+            !is.null(field$lowerlimit) &&
+            !is.na(field$lowerlimit)
+          ) {
+            
+            requirements[[length(requirements) + 1]] <- tags$li(
+              tags$strong("Minimum length: "),
+              field$lowerlimit
+            )
+          }
+          
+          if (
+            !is.null(field$upperlimit) &&
+            !is.na(field$upperlimit)
+          ) {
+            
+            requirements[[length(requirements) + 1]] <- tags$li(
+              tags$strong("Maximum length: "),
+              field$upperlimit
+            )
+          }
+        }
+        
+        # ------------------------------------------------------------
+        # Display variable
+        # ------------------------------------------------------------
+        
+        tags$div(
+          style = paste(
+            "border: 1px solid #ddd;",
+            "border-radius: 5px;",
+            "padding: 15px;",
+            "margin-bottom: 15px;",
+            "background-color: #f9f9f9;"
+          ),
+          
+          h4(
+            style = "margin-top: 0;",
+            field_name
+          ),
+          
+          if (
+            !is.null(field$description) &&
+            !is.na(field$description) &&
+            field$description != ""
+          ) {
+            tags$p(
+              tags$em(field$description)
+            )
+          },
+          
+          tags$ul(
+            requirements
+          )
+        )
+      })
+    )
   })
   
   # Errors by column

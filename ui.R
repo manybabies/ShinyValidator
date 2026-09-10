@@ -118,10 +118,10 @@ ui <- fluidPage(
           "Specification",
           
           p(
-            "This is the full text of the specification you have chosen."
+            "This is the human-readable version of the specification you have chosen."
           ),
           
-          verbatimTextOutput("specification")
+          uiOutput("specification")
         )
       )
     )
