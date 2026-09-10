@@ -21,8 +21,6 @@ studies <- tibble(
   )
 
 # Main Validation Function
-
-
 validate_dataset_field <- function(dataset_contents, field) {
 
   if (field$required) {
@@ -67,13 +65,24 @@ validate_dataset_field <- function(dataset_contents, field) {
         )
 
       } else if (field$type == "string") {
+        
+        if (field$format == "regex") {
+          
+          return(
+            ValidateRegex(
+              dataset_contents,
+              field
+              )
+          )
+        } else{
 
         return(
           ValidateString(
             dataset_contents,
             field
+            )
           )
-        )
+        }
       }
 
     } else {
@@ -221,6 +230,178 @@ ValidateString <- function(dataset_contents, field) {
     incorrect <- list(
       column = field$field, 
       invalid_value = invalid_value
+    )
+    
+    return(list(FALSE, incorrect))
+  }
+  
+  return(list(TRUE, NA))
+}
+
+# Generate regex pattern from the three provided examples
+GenerateRegex <- function(examples) {
+  
+  # Remove missing and empty examples
+  examples <- examples[
+    !is.na(examples) &
+      examples != ""
+  ]
+  
+  # Need at least 2 examples
+  if (length(examples) < 2) {
+    return(NA)
+  }
+  
+  # Find common prefix
+  common_prefix <- examples[1]
+  
+  for (example in examples[-1]) {
+    
+    max_length <- min(
+      nchar(common_prefix),
+      nchar(example)
+    )
+    
+    i <- 1
+    
+    while (
+      i <= max_length &&
+      substr(common_prefix, i, i) ==
+      substr(example, i, i)
+    ) {
+      i <- i + 1
+    }
+    
+    common_prefix <- substr(
+      common_prefix,
+      1,
+      i - 1
+    )
+  }
+  
+  # Remove the common prefix from each example
+  remaining <- substr(
+    examples,
+    nchar(common_prefix) + 1,
+    nchar(examples)
+  )
+  
+  # If everything after the prefix is numeric
+  if (all(grepl("^[0-9]+$", remaining))) {
+    
+    pattern <- paste0(
+      "^",
+      common_prefix,
+      "[0-9]+",
+      "$"
+    )
+    
+    return(pattern)
+  }
+  
+  # If everything after the prefix is lowercase letters
+  if (all(grepl("^[a-z]+$", remaining))) {
+    
+    pattern <- paste0(
+      "^",
+      common_prefix,
+      "[a-z]+",
+      "$"
+    )
+    
+    return(pattern)
+  }
+  
+  # If everything after the prefix is uppercase letters
+  if (all(grepl("^[A-Z]+$", remaining))) {
+    
+    pattern <- paste0(
+      "^",
+      common_prefix,
+      "[A-Z]+",
+      "$"
+    )
+    
+    return(pattern)
+  }
+  
+  # If everything after the prefix is letters
+  if (all(grepl("^[A-Za-z]+$", remaining))) {
+    
+    pattern <- paste0(
+      "^",
+      common_prefix,
+      "[A-Za-z]+",
+      "$"
+    )
+    
+    return(pattern)
+  }
+  
+  # If remaining characters are alphanumeric
+  if (all(grepl("^[A-Za-z0-9]+$", remaining))) {
+    
+    pattern <- paste0(
+      "^",
+      common_prefix,
+      "[A-Za-z0-9]+",
+      "$"
+    )
+    
+    return(pattern)
+  }
+  
+  # Could not confidently determine a pattern
+  NA
+}
+# Validate "regex" type
+ValidateRegex <- function(dataset_contents, field) {
+  
+  field_contents <- dataset_contents[[field$field]]
+  
+  # Ignore NA values here.
+  # NA handling is already performed in validate_dataset_field().
+  non_na_contents <- field_contents[
+    !is.na(field_contents)
+  ]
+  
+  # Check whether the regex itself is valid
+  regex_valid <- tryCatch(
+    grepl(field$pattern, "", perl = TRUE),
+    error = function(e) FALSE
+  )
+  
+  if (!regex_valid) {
+    stop(
+      sprintf(
+        "Invalid regular expression for variable '%s': %s",
+        field$field,
+        field$pattern
+      )
+    )
+  }
+  
+  # Find values that do not match the regex
+  matches <- grepl(
+    field$pattern,
+    non_na_contents,
+    perl = TRUE
+  )
+  
+  invalid_values <- non_na_contents[!matches]
+  
+  if (length(invalid_values) > 0) {
+    
+    cat(
+      sprintf(
+        "Dataset has values that do not match the required pattern for variable '%s'. To view these errors, please download the highlighted errors sheet on the left.\n",
+        field$field
+      )
+    )
+    
+    incorrect <- list(
+      column = field$field,
+      invalid_value = invalid_values
     )
     
     return(list(FALSE, incorrect))

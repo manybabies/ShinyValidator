@@ -68,14 +68,70 @@ server <- function(input, output, session) {
           }
         } 
         
-        format <- if (field_type == "numeric" && input[[paste0("range_req_", i)]] == "yes") {
+        format <- if (
+          field_type == "numeric" &&
+          input[[paste0("range_req_", i)]] == "yes"
+        ) {
+          
           "restricted"
-        } else if (field_type == "string" && input[[paste0("caped_", i)]] == "yes") {
-          "capitalized"
-        } else if (field_type == "string" && input[[paste0("caped_", i)]] == "no") {
-          "uncapitalized"
+          
+        } else if (field_type == "string") {
+          
+          validation <- input[[paste0("string_validation_", i)]]
+          
+          if (validation %in% c(
+            "letters",
+            "numbers",
+            "alphanumeric",
+            "examples"
+          )) {
+            
+            "regex"
+            
+          } else {
+            
+            validation
+          }
+          
         } else {
+          
           "open"
+        }
+        
+        pattern <- if (field_type == "string") {
+          
+          validation <- input[[paste0("string_validation_", i)]]
+          
+          if (validation == "letters") {
+            
+            "^[A-Za-z]+$"
+            
+          } else if (validation == "numbers") {
+            
+            "^[0-9]+$"
+            
+          } else if (validation == "alphanumeric") {
+            
+            "^[A-Za-z0-9]+$"
+            
+          } else if (validation == "examples") {
+            
+            examples <- c(
+              input[[paste0("example_1_", i)]],
+              input[[paste0("example_2_", i)]],
+              input[[paste0("example_3_", i)]]
+            )
+            
+            GenerateRegex(examples)
+            
+          } else {
+            
+            NA
+          }
+          
+        } else {
+          
+          NA
         }
         
         required <- if(input[[paste0("is_required_", i)]] == 'yes') {
@@ -96,6 +152,7 @@ server <- function(input, output, session) {
           type = field_type,
           options = options,
           format = format,
+          pattern = pattern,
           lowerlimit = lowerlimit,
           upperlimit = upperlimit,
           required = required,
@@ -119,63 +176,337 @@ server <- function(input, output, session) {
     }
   )
 
-  output$variableInputs <- renderUI({
-    numVars <- input$numVars
-    if (numVars > 0) {
-      field_list <- lapply(1:numVars, function(i) {
-        fluidRow(
-          # Field Humanize Variables
-          textInput(paste0("field_name_", i), paste("Enter the name of your data (Field ", i, "):")),
-          textInput(paste0("field_description_", i), paste("Enter a description of your data (Field ", i, "):")),
-          
-          # Field Type and global variables
-          selectInput(paste0("field_type_", i), "Choose your data type:", 
-                      choices = c("options", "numeric", "string")),
-          selectInput(paste0("is_required_", i), "Is the data type required:", 
-                      choices = c("yes", "no")),
-          selectInput(paste0("allow_na_", i), "Are NA Values Allowed:", 
-                      choices = c("yes", "no")),
-          
-          conditionalPanel(
-            condition = paste0("input.field_type_", i, " == 'numeric'"),
-            selectInput(paste0("range_req_", i), "Are there range restrictions on the input:", 
-                        choices = c("no", "yes")),
-          ),
-          
-          conditionalPanel(
-            condition = paste0("input.range_req_",i,"== 'yes'"),
-            numericInput(paste0("min_value_", i), "Minimum Value:", value = NA),
-            numericInput(paste0("max_value_", i), "Maximum Value:", value = NA)
-          ),
-          
-          conditionalPanel(
-            condition = paste0("input.field_type_", i, " == 'string'"),
-            selectInput(paste0("caped_", i), "Should the input have capitalizations:", 
-                        choices = c("no", "yes"))
-          ),
-          
-          conditionalPanel(
-            condition = paste0("input.field_type_", i, " == 'string'"),
-            selectInput(paste0("range_req_string", i), "Are there length restrictions on the input:", 
-                        choices = c("no", "yes")),
-          ),
-          
-          conditionalPanel(
-            condition = paste0("input.range_req_string",i,"== 'yes'"),
-            numericInput(paste0("min_value_s", i), "Minimum Value:", value = NA),
-            numericInput(paste0("max_value_s", i), "Maximum Value:", value = NA)
-          ),
-          
-          conditionalPanel(
-            condition = paste0("input.field_type_", i, " == 'options'"),
-            textInput(paste0("option_input_", i), "Enter the name of the options separated by a comma and no space:")
-          ),
-          
-          textInput(paste0("error_message_", i), "Enter an error message for your data:"),
-        )
-      })
+  createVariableTab <- function(i) {
+    
+    tabPanel(
+      title = tags$span(
+        id = paste0("tab_label_", i),
+        paste("Variable", i)
+      ),
       
-      do.call(tagList, field_list)
+      value = paste0("variable_", i),
+      
+      br(),
+      
+      # Variable information
+      textInput(
+        paste0("field_name_", i),
+        "Enter the name of this variable/column:"
+      ),
+      
+      textInput(
+        paste0("field_description_", i),
+        "Enter a description of your variable/column:"
+      ),
+      
+      # Field type and global variables
+      selectInput(
+        paste0("field_type_", i),
+        "Choose your data type:",
+        choices = c("options", "numeric", "string")
+      ),
+      
+      selectInput(
+        paste0("is_required_", i),
+        "Is the data type required:",
+        choices = c("yes", "no")
+      ),
+      
+      selectInput(
+        paste0("allow_na_", i),
+        "Are NA Values Allowed:",
+        choices = c("yes", "no")
+      ),
+      
+      # Numeric range restrictions
+      conditionalPanel(
+        condition = paste0(
+          "input.field_type_", i, " == 'numeric'"
+        ),
+        
+        selectInput(
+          paste0("range_req_", i),
+          "Are there range restrictions on the input:",
+          choices = c("no", "yes")
+        )
+      ),
+      
+      conditionalPanel(
+        condition = paste0(
+          "input.range_req_", i, " == 'yes'"
+        ),
+        
+        numericInput(
+          paste0("min_value_", i),
+          "Minimum Value:",
+          value = NA
+        ),
+        
+        numericInput(
+          paste0("max_value_", i),
+          "Maximum Value:",
+          value = NA
+        )
+      ),
+      
+      # String validation
+      conditionalPanel(
+        condition = paste0(
+          "input.field_type_", i, " == 'string'"
+        ),
+        
+        selectInput(
+          paste0("string_validation_", i),
+          "String validation:",
+          choices = c(
+            "Open text" = "open",
+            "Lowercase only" = "uncapitalized",
+            "Uppercase only" = "capitalized",
+            "Letters only" = "letters",
+            "Numbers only" = "numbers",
+            "Letters and numbers" = "alphanumeric",
+            "Match example values" = "examples"
+          )
+        )
+      ),
+      
+      # Example-based validation
+      conditionalPanel(
+        condition = paste0(
+          "input.field_type_", i,
+          " == 'string' && ",
+          "input.string_validation_", i,
+          " == 'examples'"
+        ),
+        
+        textInput(
+          paste0("example_1_", i),
+          "Example value 1:",
+          value = ""
+        ),
+        
+        textInput(
+          paste0("example_2_", i),
+          "Example value 2:",
+          value = ""
+        ),
+        
+        textInput(
+          paste0("example_3_", i),
+          "Example value 3:",
+          value = ""
+        ),
+        
+        helpText(
+          "Enter three examples of valid values. The validator will use them to determine the required pattern."
+        ),
+        
+        uiOutput(
+          paste0("example_validation_", i)
+        )
+      ),
+      
+      # String length restrictions
+      conditionalPanel(
+        condition = paste0(
+          "input.field_type_", i,
+          " == 'string'"
+        ),
+        
+        selectInput(
+          paste0("range_req_string", i),
+          "Are there length restrictions on the input:",
+          choices = c("no", "yes")
+        )
+      ),
+      
+      conditionalPanel(
+        condition = paste0(
+          "input.range_req_string", i,
+          " == 'yes'"
+        ),
+        
+        numericInput(
+          paste0("min_value_s", i),
+          "Minimum Value:",
+          value = NA
+        ),
+        
+        numericInput(
+          paste0("max_value_s", i),
+          "Maximum Value:",
+          value = NA
+        )
+      ),
+      
+      # Options
+      conditionalPanel(
+        condition = paste0(
+          "input.field_type_", i,
+          " == 'options'"
+        ),
+        
+        textInput(
+          paste0("option_input_", i),
+          "Enter the name of the options separated by a comma and no space:"
+        )
+      ),
+      
+      # Error message
+      textInput(
+        paste0("error_message_", i),
+        "Enter an error message for your data:"
+      )
+    )
+  }
+  
+  
+  current_num_vars <- reactiveVal(0)
+  
+  
+  observeEvent(input$numVars, {
+    
+    new_num_vars <- input$numVars
+    
+    if (is.null(new_num_vars) || is.na(new_num_vars)) {
+      return()
+    }
+    
+    old_num_vars <- current_num_vars()
+    
+    # Add tabs when the number of variables increases
+    if (new_num_vars > old_num_vars) {
+      
+      for (i in seq(old_num_vars + 1, new_num_vars)) {
+        
+        insertTab(
+          inputId = "variable_tabs",
+          tab = createVariableTab(i),
+          target = NULL,
+          position = "after",
+          select = TRUE
+        )
+      }
+    }
+    
+    # Remove tabs when the number of variables decreases
+    if (new_num_vars < old_num_vars) {
+      
+      for (i in seq(new_num_vars + 1, old_num_vars)) {
+        
+        removeTab(
+          inputId = "variable_tabs",
+          target = paste0("variable_", i)
+        )
+      }
+    }
+    
+    current_num_vars(new_num_vars)
+  })
+  
+  observe({
+    
+    nVars <- input$numVars
+    
+    if (!is.null(nVars) && !is.na(nVars) && nVars > 0) {
+      
+      for (i in 1:nVars) {
+        
+        local({
+          
+          j <- i
+          
+          output[[paste0("example_validation_", j)]] <- renderUI({
+            
+            validation <- input[[paste0("string_validation_", j)]]
+            
+            if (is.null(validation) || is.na(validation) || validation != "examples") {
+              return(NULL)
+            }
+            
+            examples <- c(
+              input[[paste0("example_1_", j)]],
+              input[[paste0("example_2_", j)]],
+              input[[paste0("example_3_", j)]]
+            )
+            
+            if (any(is.null(examples)) || any(examples == "")) {
+              
+              return(
+                helpText(
+                  "Please enter all three example values."
+                )
+              )
+            }
+            
+            NULL
+          })
+          
+        })
+      }
+    }
+  })
+  
+  output$downloadSetupButton <- renderUI({
+    
+    nVars <- input$numVars
+    
+    if (is.null(nVars) || nVars == 0) {
+      return(NULL)
+    }
+    
+    all_examples_complete <- TRUE
+    
+    for (i in 1:nVars) {
+      
+      field_type <- input[[paste0("field_type_", i)]]
+      validation <- input[[paste0("string_validation_", i)]]
+      
+      if (!is.null(field_type) &&
+          !is.na(field_type) &&
+          field_type == "string" &&
+          !is.null(validation) &&
+          !is.na(validation) &&
+          validation == "examples") {
+        
+        examples <- c(
+          input[[paste0("example_1_", i)]],
+          input[[paste0("example_2_", i)]],
+          input[[paste0("example_3_", i)]]
+        )
+        
+        if (any(is.null(examples)) ||
+            any(is.na(examples)) ||
+            any(examples == "")) {
+          
+          all_examples_complete <- FALSE
+        }
+      }
+    }
+    
+    if (all_examples_complete) {
+      
+      downloadButton(
+        "downloadSetup",
+        "Download Setup"
+      )
+      
+    } else {
+      
+      tagList(
+        tags$button(
+          type = "button",
+          class = "btn btn-default disabled",
+          disabled = "disabled",
+          "Download Setup"
+        ),
+        tags$p(
+          tags$strong(
+            style = "color: red;",
+            "Please enter all three example values before downloading the setup."
+          )
+        )
+      )
     }
   })
   
