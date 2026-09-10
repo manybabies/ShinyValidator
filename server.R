@@ -179,6 +179,7 @@ server <- function(input, output, session) {
   createVariableTab <- function(i) {
     
     tabPanel(
+      
       title = tags$span(
         id = paste0("tab_label_", i),
         paste("Variable", i)
@@ -188,178 +189,255 @@ server <- function(input, output, session) {
       
       br(),
       
-      # Variable information
-      textInput(
-        paste0("field_name_", i),
-        "Enter the name of this variable/column:"
-      ),
-      
-      textInput(
-        paste0("field_description_", i),
-        "Enter a description of your variable/column:"
-      ),
-      
-      # Field type and global variables
-      selectInput(
-        paste0("field_type_", i),
-        "Choose your data type:",
-        choices = c("options", "numeric", "string")
-      ),
-      
-      selectInput(
-        paste0("is_required_", i),
-        "Is the data type required:",
-        choices = c("yes", "no")
-      ),
-      
-      selectInput(
-        paste0("allow_na_", i),
-        "Are NA Values Allowed:",
-        choices = c("yes", "no")
-      ),
-      
-      # Numeric range restrictions
-      conditionalPanel(
-        condition = paste0(
-          "input.field_type_", i, " == 'numeric'"
+      fluidRow(
+        
+        # Variable Information + General Settings
+        column(
+          width = 4,
+          
+          h4("Variable Information"),
+          
+          textInput(
+            paste0("field_name_", i),
+            "Variable/column name:"
+          ),
+          
+          textInput(
+            paste0("field_description_", i),
+            "Description:"
+          ),
+          
+          br(),
+          
+          h4("General Settings"),
+          
+          selectInput(
+            paste0("is_required_", i),
+            "Is this variable required?",
+            choices = c(
+              "Yes" = "yes",
+              "No" = "no"
+            )
+          ),
+          
+          selectInput(
+            paste0("allow_na_", i),
+            "Are NA values allowed?",
+            choices = c(
+              "Yes" = "yes",
+              "No" = "no"
+            )
+          )
         ),
         
-        selectInput(
-          paste0("range_req_", i),
-          "Are there range restrictions on the input:",
-          choices = c("no", "yes")
-        )
-      ),
-      
-      conditionalPanel(
-        condition = paste0(
-          "input.range_req_", i, " == 'yes'"
+        # Data Type
+        column(
+          width = 4,
+          
+          h4("Data Type"),
+          
+          selectInput(
+            paste0("field_type_", i),
+            "Choose your data type:",
+            choices = c(
+              "Options" = "options",
+              "Numeric" = "numeric",
+              "String" = "string"
+            )
+          )
         ),
         
-        numericInput(
-          paste0("min_value_", i),
-          "Minimum Value:",
-          value = NA
-        ),
-        
-        numericInput(
-          paste0("max_value_", i),
-          "Maximum Value:",
-          value = NA
-        )
-      ),
-      
-      # String validation
-      conditionalPanel(
-        condition = paste0(
-          "input.field_type_", i, " == 'string'"
-        ),
-        
-        selectInput(
-          paste0("string_validation_", i),
-          "String validation:",
-          choices = c(
-            "Open text" = "open",
-            "Lowercase only" = "uncapitalized",
-            "Uppercase only" = "capitalized",
-            "Letters only" = "letters",
-            "Numbers only" = "numbers",
-            "Letters and numbers" = "alphanumeric",
-            "Match example values" = "examples"
+        # Dynamic controls
+        column(
+          width = 4,
+          
+          # NUMERIC
+
+          conditionalPanel(
+            condition = paste0(
+              "input.field_type_", i,
+              " == 'numeric'"
+            ),
+            
+            h4("Numeric Settings"),
+            
+            selectInput(
+              paste0("range_req_", i),
+              "Are there range restrictions?",
+              choices = c(
+                "No" = "no",
+                "Yes" = "yes"
+              )
+            ),
+            
+            conditionalPanel(
+              condition = paste0(
+                "input.range_req_", i,
+                " == 'yes'"
+              ),
+              
+              fluidRow(
+                
+                column(
+                  width = 6,
+                  
+                  numericInput(
+                    paste0("min_value_", i),
+                    "Minimum:",
+                    value = NA
+                  )
+                ),
+                
+                column(
+                  width = 6,
+                  
+                  numericInput(
+                    paste0("max_value_", i),
+                    "Maximum:",
+                    value = NA
+                  )
+                )
+              )
+            )
+          ),
+
+          # OPTIONS
+          conditionalPanel(
+            condition = paste0(
+              "input.field_type_", i,
+              " == 'options'"
+            ),
+            
+            h4("Option Settings"),
+            
+            selectInput(
+              paste0("num_options_", i),
+              "How many options are allowed?",
+              choices = 1:20,
+              selected = 2
+            ),
+            
+            uiOutput(
+              paste0("option_fields_", i)
+            )
+          ),
+          
+          # STRING
+          conditionalPanel(
+            condition = paste0(
+              "input.field_type_", i,
+              " == 'string'"
+            ),
+            
+            h4("String Settings"),
+            
+            selectInput(
+              paste0("string_validation_", i),
+              "String validation:",
+              choices = c(
+                "Open text" = "open",
+                "Lowercase only" = "uncapitalized",
+                "Uppercase only" = "capitalized",
+                "Letters only" = "letters",
+                "Numbers only" = "numbers",
+                "Letters and numbers" = "alphanumeric",
+                "Match example values" = "examples"
+              )
+            ),
+            
+            # Example values
+            conditionalPanel(
+              condition = paste0(
+                "input.string_validation_", i,
+                " == 'examples'"
+              ),
+              
+              textInput(
+                paste0("example_1_", i),
+                "Example value 1:"
+              ),
+              
+              textInput(
+                paste0("example_2_", i),
+                "Example value 2:"
+              ),
+              
+              textInput(
+                paste0("example_3_", i),
+                "Example value 3:"
+              ),
+              
+              helpText(
+                "Enter three examples of valid values."
+              ),
+              
+              uiOutput(
+                paste0("example_validation_", i)
+              )
+            ),
+            
+            br(),
+            
+            # String length restrictions
+            selectInput(
+              paste0("range_req_string", i),
+              "Are there length restrictions?",
+              choices = c(
+                "No" = "no",
+                "Yes" = "yes"
+              )
+            ),
+            
+            conditionalPanel(
+              condition = paste0(
+                "input.range_req_string", i,
+                " == 'yes'"
+              ),
+              
+              fluidRow(
+                
+                column(
+                  width = 6,
+                  
+                  numericInput(
+                    paste0("min_value_s", i),
+                    "Minimum:",
+                    value = NA
+                  )
+                ),
+                
+                column(
+                  width = 6,
+                  
+                  numericInput(
+                    paste0("max_value_s", i),
+                    "Maximum:",
+                    value = NA
+                  )
+                )
+              )
+            )
           )
         )
       ),
       
-      # Example-based validation
-      conditionalPanel(
-        condition = paste0(
-          "input.field_type_", i,
-          " == 'string' && ",
-          "input.string_validation_", i,
-          " == 'examples'"
-        ),
+      # ERROR MESSAGE
+      fluidRow(
         
-        textInput(
-          paste0("example_1_", i),
-          "Example value 1:",
-          value = ""
-        ),
-        
-        textInput(
-          paste0("example_2_", i),
-          "Example value 2:",
-          value = ""
-        ),
-        
-        textInput(
-          paste0("example_3_", i),
-          "Example value 3:",
-          value = ""
-        ),
-        
-        helpText(
-          "Enter three examples of valid values. The validator will use them to determine the required pattern."
-        ),
-        
-        uiOutput(
-          paste0("example_validation_", i)
+        column(
+          width = 12,
+          
+          br(),
+          h4("Error Message"),
+          
+          textInput(
+            paste0("error_message_", i),
+            "Enter an error message for your data:"
+          )
         )
-      ),
-      
-      # String length restrictions
-      conditionalPanel(
-        condition = paste0(
-          "input.field_type_", i,
-          " == 'string'"
-        ),
-        
-        selectInput(
-          paste0("range_req_string", i),
-          "Are there length restrictions on the input:",
-          choices = c("no", "yes")
-        )
-      ),
-      
-      conditionalPanel(
-        condition = paste0(
-          "input.range_req_string", i,
-          " == 'yes'"
-        ),
-        
-        numericInput(
-          paste0("min_value_s", i),
-          "Minimum Value:",
-          value = NA
-        ),
-        
-        numericInput(
-          paste0("max_value_s", i),
-          "Maximum Value:",
-          value = NA
-        )
-      ),
-      
-      # Options
-      conditionalPanel(
-        condition = paste0(
-          "input.field_type_", i,
-          " == 'options'"
-        ),
-        
-        textInput(
-          paste0("option_input_", i),
-          "Enter the name of the options separated by a comma and no space:"
-        )
-      ),
-      
-      # Error message
-      textInput(
-        paste0("error_message_", i),
-        "Enter an error message for your data:"
       )
     )
   }
-  
   
   current_num_vars <- reactiveVal(0)
   
@@ -408,6 +486,41 @@ server <- function(input, output, session) {
     
     nVars <- input$numVars
     
+    if (is.null(nVars) || is.na(nVars) || nVars == 0) {
+      return()
+    }
+    
+    for (i in 1:nVars) {
+      
+      local({
+        
+        j <- i
+        
+        output[[paste0("option_fields_", j)]] <- renderUI({
+          
+          n_options <- input[[paste0("num_options_", j)]]
+          
+          if (is.null(n_options) || is.na(n_options)) {
+            return(NULL)
+          }
+          
+          lapply(1:n_options, function(k) {
+            
+            textInput(
+              paste0("option_", k, "_", j),
+              paste0("Option ", k, ":")
+            )
+            
+          })
+        })
+      })
+    }
+  })
+  
+  observe({
+    
+    nVars <- input$numVars
+    
     if (!is.null(nVars) && !is.na(nVars) && nVars > 0) {
       
       for (i in 1:nVars) {
@@ -433,7 +546,8 @@ server <- function(input, output, session) {
             if (any(is.null(examples)) || any(examples == "")) {
               
               return(
-                helpText(
+                tags$p(
+                  style = "color: red;",
                   "Please enter all three example values."
                 )
               )
