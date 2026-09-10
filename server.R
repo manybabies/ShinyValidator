@@ -1,12 +1,22 @@
 library(shiny)
 library(tidyverse)
 library(yaml)
+library(DT)
 
 source("common.R")
 source("ErrorHandler.R")
 
 # NEW Server
 server <- function(input, output, session) {
+  
+  error_view_state <- reactiveVal("column")
+  
+  observeEvent(input$error_view, {
+    if (!is.null(input$error_view)) {
+      error_view_state(input$error_view)
+    }
+  }, ignoreNULL = FALSE)
+  
   output$study_format <- renderUI({
     selectInput("format", label = h4("Study Format"),
                 choices = filter(studies, study == input$study)$format)
@@ -18,30 +28,95 @@ server <- function(input, output, session) {
     yaml::yaml.load_file(yaml_file_path)
   })
   
-  output$validator_output <- renderPrint({
+  # Errors by column
+  output$errors_by_column <- renderUI({
+    
     req(input$file)
+    req(input$study, input$format)
     
-    yaml_file_path <- paste0("data_specifications/", input$study, "_", input$format, ".yaml")
-    fields <- yaml::yaml.load_file(yaml_file_path)
+    yaml_file_path <- paste0(
+      "data_specifications/",
+      input$study,
+      "_",
+      input$format,
+      ".yaml"
+    )
     
-    tryCatch({
-      df <- read_csv(input$file$datapath)
-      cat("Dataset uploaded successfully! Reviewing Dataset... \n\n")
-    }, error = function(e) {
-      stop(safeError(e))
-    })
+    req(file.exists(yaml_file_path))
     
-    validated <- validate_dataset(fields, df)
-    valid <- validated[[1]]
+    fields <- yaml::yaml.load_file(
+      yaml_file_path
+    )
+    
+    df <- readr::read_csv(
+      input$file$datapath,
+      show_col_types = FALSE
+    )
+    
+    validated <- validate_dataset(
+      fields,
+      df
+    )
+    
     issues <- validated[[2]]
-    if (valid) {
-      cat("\nDataset is valid! All variables match specifications.")
-    } else {
-      cat("\nThe dataset is not valid. Please review the specifications and the highlighted error log.")
-
+    
+    if (input$error_view == "none") {
+      return(NULL)
     }
+    
+    if (length(issues) == 0) {
+      return(
+        tags$p(
+          style = "color: green;",
+          tags$strong(
+            "No errors found. The dataset matches the specification."
+          )
+        )
+      )
+    }
+    
+    # Default to column view unless the user has explicitly
+    # selected the row view.
+    if (error_view_state() == "row") {
+      
+      messages <- format_errors_by_row(
+        issues
+      )
+      
+      return(
+        tagList(
+          h4("Errors by row"),
+          lapply(
+            messages,
+            function(message) {
+              tags$p(
+                style = "color: red;",
+                message
+              )
+            }
+          )
+        )
+      )
+    }
+    
+    # Default view: column
+    messages <- format_errors_by_column(
+      issues
+    )
+    
+    tagList(
+      h4("Errors by column"),
+      lapply(
+        messages,
+        function(message) {
+          tags$p(
+            style = "color: red;",
+            message
+          )
+        }
+      )
+    )
   })
-  
   userData <- reactive({
     nVars <- input$numVars
     data_list <- list()
@@ -732,5 +807,76 @@ server <- function(input, output, session) {
         stop("No issues to highlight. The dataset is valid!")
       }
     }
+    
   )
+  output$validation_preview <- DT::renderDT({
+    
+    req(input$file)
+    req(input$study, input$format)
+    
+    yaml_file_path <- paste0(
+      "data_specifications/",
+      input$study,
+      "_",
+      input$format,
+      ".yaml"
+    )
+    
+    req(file.exists(yaml_file_path))
+    
+    fields <- yaml::yaml.load_file(
+      yaml_file_path
+    )
+    
+    df <- readr::read_csv(
+      input$file$datapath,
+      show_col_types = FALSE
+    )
+    
+    validated <- validate_dataset(
+      fields,
+      df
+    )
+    
+    issues <- validated[[2]]
+    
+    table <- DT::datatable(
+      df,
+      options = list(
+        pageLength = 10,
+        scrollX = TRUE
+      ),
+      rownames = FALSE
+    )
+    
+    # Highlight exact invalid cells
+    for (issue in issues) {
+      
+      # Missing columns do not have a cell to highlight
+      if (
+        is.null(issue) ||
+        issue$type != "invalid_cell"
+      ) {
+        next
+      }
+      
+      column_name <- issue$column
+      rows <- issue$invalid_row
+      
+      if (
+        column_name %in% names(df) &&
+        length(rows) > 0
+      ) {
+        
+        table <- DT::formatStyle(
+          table,
+          columns = column_name,
+          rows = rows,
+          backgroundColor = "yellow"
+        )
+      }
+    }
+    
+    table
+  })
 }

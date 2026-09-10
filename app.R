@@ -1,4 +1,5 @@
 library(shiny)
+library(DT)
 
 source("ui.R")
 source("server.R")

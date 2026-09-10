@@ -1,5 +1,6 @@
 library(shiny)
 library(shinythemes)
+library(DT)
 
 source("common.R")
 
@@ -70,8 +71,24 @@ ui <- fluidPage(
             em("Browse"),
             "to select the dataset you would like to validate."
           ),
+          radioButtons(
+            "error_view",
+            "View errors by:",
+            choices = c(
+              "No in-app error display" = "none",
+              "Column" = "column",
+              "Row" = "row"
+            ),
+            selected = "none",
+            inline = TRUE
+          ),
           
-          verbatimTextOutput("validator_output")
+          uiOutput("errors_by_column"),
+          
+          uiOutput("row_actions"),
+          
+          DTOutput("validation_preview"),
+          
         ),
         
         tabPanel(
