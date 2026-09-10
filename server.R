@@ -155,6 +155,27 @@ server <- function(input, output, session) {
           pattern = pattern,
           lowerlimit = lowerlimit,
           upperlimit = upperlimit,
+          allow_decimals = if (field_type == "numeric") {
+            input[[paste0("allow_decimals_", i)]]
+          } else {
+            NA
+          },
+          min_decimals = if (
+            field_type == "numeric" &&
+            input[[paste0("allow_decimals_", i)]] == "yes"
+          ) {
+            as.numeric(input[[paste0("min_decimals_", i)]])
+          } else {
+            NA
+          },
+          max_decimals = if (
+            field_type == "numeric" &&
+            input[[paste0("allow_decimals_", i)]] == "yes"
+          ) {
+            as.numeric(input[[paste0("max_decimals_", i)]])
+          } else {
+            NA
+          },
           required = required,
           NA_allowed = NA_allowed,
           error_message = toString(input[[paste0("error_message_", i)]])

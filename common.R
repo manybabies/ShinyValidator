@@ -127,47 +127,186 @@ ValidateOption <- function(dataset_contents, field) {
   return(list(TRUE, NA))
 }
 
-# Validate "numeric" type - C
+# Validate "numeric" type
 ValidateNumeric <- function(dataset_contents, field) {
+  
   field_contents <- dataset_contents[[field$field]]
   invalid_content <- c()
   
-  numeric_values <- suppressWarnings(as.numeric(field_contents))
-  non_numeric_indices <- which(is.na(numeric_values) & !is.na(field_contents))
+  # Convert to numeric only for numerical validation
+  numeric_values <- suppressWarnings(
+    as.numeric(field_contents)
+  )
+  
+  # Check for values that cannot be converted to numeric
+  non_numeric_indices <- which(
+    is.na(numeric_values) &
+      !is.na(field_contents)
+  )
   
   if (length(non_numeric_indices) > 0) {
-    cat(sprintf("Dataset has wrong type for numeric variable '%s'. To view these errors, please download the highlighted errors sheet on the left.\n", field$field))
-    invalid_content <- c(invalid_content, field_contents[non_numeric_indices])
+    
+    cat(sprintf(
+      "Dataset has wrong type for numeric variable '%s'. To view these errors, please download the highlighted errors sheet on the left.\n",
+      field$field
+    ))
+    
+    invalid_content <- c(
+      invalid_content,
+      field_contents[non_numeric_indices]
+    )
   }
   
+  # Check range restrictions
   if (field$format == "restricted") {
-    numeric_values <- numeric_values[!is.na(numeric_values)]
+    
     lowerLimit <- as.numeric(field$lowerlimit)
     upperLimit <- as.numeric(field$upperlimit)
     
-    below_lower <- numeric_values[numeric_values < lowerLimit]
-    above_upper <- numeric_values[numeric_values > upperLimit]
+    valid_numeric_indices <- which(
+      !is.na(numeric_values)
+    )
     
-    if (length(below_lower) > 0) {
-      cat(sprintf("Dataset has data points below the lower limit for numeric variable '%s'. To view these errors, please download the highlighted errors sheet on the left.\n", field$field))
-      invalid_content <- c(invalid_content, below_lower)
+    below_lower_indices <- valid_numeric_indices[
+      numeric_values[valid_numeric_indices] < lowerLimit
+    ]
+    
+    above_upper_indices <- valid_numeric_indices[
+      numeric_values[valid_numeric_indices] > upperLimit
+    ]
+    
+    if (length(below_lower_indices) > 0) {
+      
+      cat(sprintf(
+        "Dataset has data points below the lower limit for numeric variable '%s'. To view these errors, please download the highlighted errors sheet on the left.\n",
+        field$field
+      ))
+      
+      invalid_content <- c(
+        invalid_content,
+        field_contents[below_lower_indices]
+      )
     }
     
-    if (length(above_upper) > 0) {
-      cat(sprintf("Dataset has data points above the upper limit for numeric variable '%s'. To view these errors, please download the highlighted errors sheet on the left.\n", field$field))
-      invalid_content <- c(invalid_content, above_upper)
+    if (length(above_upper_indices) > 0) {
+      
+      cat(sprintf(
+        "Dataset has data points above the upper limit for numeric variable '%s'. To view these errors, please download the highlighted errors sheet on the left.\n",
+        field$field
+      ))
+      
+      invalid_content <- c(
+        invalid_content,
+        field_contents[above_upper_indices]
+      )
     }
   }
   
+  # Check whether decimals are allowed
+  if (field$allow_decimals == "no") {
+    
+    decimal_indices <- which(
+      !is.na(numeric_values) &
+        numeric_values %% 1 != 0
+    )
+    
+    if (length(decimal_indices) > 0) {
+      
+      cat(sprintf(
+        "Dataset has decimal values in numeric variable '%s', but decimals are not allowed. To view these errors, please download the highlighted errors sheet on the left.\n",
+        field$field
+      ))
+      
+      invalid_content <- c(
+        invalid_content,
+        field_contents[decimal_indices]
+      )
+    }
+  }
+  
+  # Check minimum and maximum decimal places
+  if (field$allow_decimals == "yes") {
+    
+    min_decimals <- as.numeric(field$min_decimals)
+    max_decimals <- as.numeric(field$max_decimals)
+    
+    valid_numeric_indices <- which(
+      !is.na(numeric_values)
+    )
+    
+    decimal_places <- sapply(
+      field_contents[valid_numeric_indices],
+      function(x) {
+        
+        x <- as.character(x)
+        
+        if (!grepl("\\.", x)) {
+          return(0)
+        }
+        
+        nchar(
+          sub(
+            "^[^.]*\\.",
+            "",
+            x
+          )
+        )
+      }
+    )
+    
+    # Too few decimal places
+    too_few_decimals <- valid_numeric_indices[
+      decimal_places < min_decimals
+    ]
+    
+    # Too many decimal places
+    too_many_decimals <- valid_numeric_indices[
+      decimal_places > max_decimals
+    ]
+    
+    if (length(too_few_decimals) > 0) {
+      
+      cat(sprintf(
+        "Dataset has values with fewer than %s decimal places for numeric variable '%s'. To view these errors, please download the highlighted errors sheet on the left.\n",
+        min_decimals,
+        field$field
+      ))
+      
+      invalid_content <- c(
+        invalid_content,
+        field_contents[too_few_decimals]
+      )
+    }
+    
+    if (length(too_many_decimals) > 0) {
+      
+      cat(sprintf(
+        "Dataset has values with more than %s decimal places for numeric variable '%s'. To view these errors, please download the highlighted errors sheet on the left.\n",
+        max_decimals,
+        field$field
+      ))
+      
+      invalid_content <- c(
+        invalid_content,
+        field_contents[too_many_decimals]
+      )
+    }
+  }
+  
+  # Return errors if any were found, remove duplicates
   if (length(invalid_content) > 0) {
+    
+    invalid_content <- unique(invalid_content)
+    
     incorrect <- list(
-      column = field$field, 
+      column = field$field,
       invalid_value = invalid_content
     )
     
     return(list(FALSE, incorrect))
   }
   
+  # No errors
   return(list(TRUE, NA))
 }
 
