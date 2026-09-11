@@ -6,7 +6,7 @@ source("common.R")
 
 # UI
 ui <- fluidPage(
-  theme = shinytheme("spacelab"),
+  theme = shinythemes::shinytheme("spacelab"),
   
   titlePanel("ShinyValidator Template"),
   br(),
@@ -87,7 +87,7 @@ ui <- fluidPage(
           
           uiOutput("row_actions"),
           
-          DTOutput("validation_preview"),
+          DTOutput("validation_preview")
           
         ),
         

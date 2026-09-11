@@ -107,7 +107,8 @@ For the most part, these fields should be self-explanatory.
 
 There are three variable types that the validator can check: **options**, **numeric**, and **strings**.
 
-### Options
+<details>
+<summary><strong>Options</strong></summary>
 
 This variable type allows you to specify which **exact entries** are allowed.
 
@@ -115,7 +116,10 @@ For instance, if I have a variable called "color," and the only possible values 
 
 <img src="README_images/options.png" alt="" width="300" height="500">
 
-### Numeric
+</details>
+
+<details>
+<summary><strong>Numeric</strong></summary>
 
 This variable type allows you to specify that a particular column can only take numeric values.
 
@@ -125,7 +129,10 @@ For instance, if I have a variable "reaction_time_ms" with a minimum value of 30
 
 <img src="README_images/numeric.png" alt="" width="300" height="500">
 
-### String
+</details>
+
+<details>
+<summary><strong>String</strong></summary>
 
 This variable type allows for open-ended entries (useful if it is impractical to list out all possible entries), but can be used to place restrictions on capitalization as well as maximum character length.
 
@@ -134,6 +141,8 @@ For instance, if I am conducting a large-scale collaborative project where I col
 That said, I may want a character limit (e.g. 10 characters) so people don't get too creative, and want to remove all capitalization for easier processing. I would then specify as such:
 
 <img src="README_images/string.png" alt="" width="300" height="500">
+
+</details>
 
 ## 2.5 Adding your data specification to the validator
 
@@ -188,45 +197,172 @@ The validator is organized across five primary R files:
 | `app.R`          | Application initialization and launch         |
 | `ui.R`           | User interface and layout                     |
 | `server.R`       | Server-side application logic                 |
-| `commons.R`      | Shared functions and validation functions     |
-| `ErrorHandler.R` | Error handling and user-facing error messages |
+| `common.R`       | Shared functions and validation functions     |
+| `ErrorHandler.R` | Error handling and downloadable error reports |
 
 The validator also relies on `.yaml` files stored in the `data_specifications` folder to define study-specific data requirements.
 
-Detailed documentation of each component will be provided below.
+Detailed documentation of each component is provided below.
 
-## 3.2 `app.R`
+<details>
+<summary><strong>3.2 `app.R`</strong></summary>
 
-*Developer documentation to be added.*
+`app.R` is the entry point for the Shiny application. It:
 
-## 3.3 `ui.R`
+1. Loads the core packages needed to launch the application.
+2. Sources `ui.R` and `server.R`.
+3. Launches the application with `shinyApp()`.
 
-*Developer documentation to be added.*
+The file generally does not need to be modified when adapting the validator. If additional R files are added, they should generally be sourced from the appropriate component file rather than directly from `app.R`.
 
-## 3.4 `server.R`
+</details>
 
-*Developer documentation to be added.*
+<details>
+<summary><strong>3.3 ui.R</strong></summary>
 
-## 3.5 `commons.R`
+`ui.R` defines the application's user interface.
 
-*Developer documentation to be added.*
+The main interface contains three tabs:
 
-## 3.6 `ErrorHandler.R`
+* **Validation Results** — study/format selection, CSV upload, error display options, validation preview, and highlighted-file download.
+* **Specification Creation** — allows users to create a YAML specification by defining the number and properties of variables.
+* **Specification** — displays the human-readable specification for the selected study and format.
 
-*Developer documentation to be added.*
+### Customizing the UI
 
-## 3.7 Data specifications and YAML files
+User-facing text, instructions, links, and the overall layout can be modified directly in `ui.R`. The welcome messages in the **Validation Results** tab are intended to be replaced with project-specific instructions.
 
-*Developer documentation to be added.*
+The application uses `shinythemes` for the visual theme and `DT` for the validation preview table.
 
-## 3.8 Adding or modifying validation functions
+A small JavaScript component automatically updates specification tab labels as variable names are entered. This should generally be left unchanged unless the specification-creation interface is modified.
 
-*Developer documentation to be added.*
+</details>
 
-## 3.9 Adding new error types
+<details>
+<summary><strong>3.4 server.R</strong></summary>
 
-*Developer documentation to be added.*
+`server.R` contains the server-side logic for the application. It connects the UI inputs to the validation functions in `common.R` and generates the application's outputs.
 
-## 3.10 Development and testing workflow
+### Main components
 
-*Developer documentation to be added.*
+* **Study and format selection** — dynamically updates the available study formats based on the selected study.
+* **Specification display** — loads the selected YAML file and displays its requirements.
+* **Validation errors** — validates the uploaded dataset and displays errors by column or row.
+* **Specification creation** — collects the user's variable settings and converts them into a YAML-compatible structure.
+* **Specification download** — generates and downloads the user-created YAML specification.
+* **Variable tabs** — dynamically creates and removes tabs based on the requested number of variables.
+* **Option and example inputs** — generates additional inputs for option values and example-based string validation.
+* **Highlighted dataset download** — validates the uploaded dataset and creates an Excel file highlighting invalid cells.
+* **Validation preview** — displays the uploaded dataset and highlights invalid cells in the table.
+
+### Validation workflow
+
+The main validation outputs follow this general workflow:
+
+1. Load the YAML specification corresponding to the selected study and format.
+2. Read the uploaded CSV dataset.
+3. Pass the specification and dataset to `validate_dataset()` in `common.R`.
+4. Process the returned issues.
+5. Display the results or generate the highlighted Excel file.
+
+</details>
+
+<details>
+<summary><strong>3.5 common.R</strong></summary>
+
+`common.R` contains the core data-validation functions used by the application. It also identifies available study/format combinations and generates user-facing explanations for validation errors.
+
+### Study and format discovery
+
+The `studies` object is generated automatically by reading `.yaml` files from the `data_specifications` folder. Filenames are split at the underscore to identify the study and format.
+
+For example:
+
+```text
+FishSpeed_RawData.yaml
+```
+
+is interpreted as:
+
+| study     | format  |
+| --------- | ------- |
+| FishSpeed | RawData |
+
+Therefore, adding a correctly named YAML file to `data_specifications` automatically makes the study/format available to the application.
+
+### Dataset validation
+
+`validate_dataset()` is the main validation function. It:
+
+1. Checks that all required columns are present.
+2. Passes each existing field to `validate_dataset_field()`.
+3. Collects any validation issues.
+4. Returns whether the dataset is valid and, if not, a list of issues.
+
+`validate_dataset_field()` determines which validation function should be used based on the field specification:
+
+| Field type | Validation function                     |
+| ---------- | --------------------------------------- |
+| `options`  | `ValidateOption()`                      |
+| `numeric`  | `ValidateNumeric()`                     |
+| `string`   | `ValidateString()` or `ValidateRegex()` |
+
+### Validation functions
+
+The individual validation functions perform the following checks:
+
+* **`ValidateOption()`** — checks whether values match one of the allowed options.
+* **`ValidateNumeric()`** — checks numeric values, ranges, decimal restrictions, and decimal places.
+* **`ValidateString()`** — checks capitalization and character-length restrictions.
+* **`ValidateRegex()`** — checks values against a specified regular expression.
+* **`GenerateRegex()`** — generates a regular expression from compatible example values.
+
+All validation functions return the same basic structure:
+
+```r
+list(TRUE, NULL)
+```
+
+when the field is valid, or:
+
+```r
+list(FALSE, issue)
+```
+
+when an error is detected.
+
+Issues contain information such as the error type, column, invalid value, and row number. This standardized structure allows the server and error-handling components to process validation errors consistently.
+
+### Error explanations
+
+`explain_error()` converts validation issues into user-facing explanations. It uses the field specification to describe the relevant requirement, while allowing individual fields to provide a custom `error_message`.
+
+### Developer notes
+
+When adding a new validation function, maintain the existing return structure and include the affected column and row information in the issue object.
+
+If adding a new field type, update `validate_dataset_field()` so that the new type is routed to the appropriate validation function.
+
+</details>
+
+<details>
+<summary><strong>3.6 ErrorHandler.R</strong></summary>
+
+`ErrorHandler.R` contains the function used to generate the downloadable Excel validation report.
+
+### `highlight_csv_to_xlsx()`
+
+`highlight_csv_to_xlsx()` takes the uploaded dataset and the validation issues returned by `validate_dataset()` and creates an Excel workbook containing:
+
+* **Data** — the original dataset, with invalid cells highlighted.
+* **Error Log** — a record of missing columns and invalid cells, including the row, column, and invalid value where applicable.
+
+Missing columns are recorded in the error log but cannot be highlighted in the dataset because the column does not exist.
+
+The function returns an `openxlsx` workbook object, which is saved by the download handler in `server.R`.
+
+### Developer notes
+
+If new issue types are added to `common.R`, update `highlight_csv_to_xlsx()` if those issues should appear in the downloadable error report.
+
+</details>

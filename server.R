@@ -6,6 +6,7 @@ library(DT)
 source("common.R")
 source("ErrorHandler.R")
 
+
 server <- function(input, output, session) {
   
   ## Study format

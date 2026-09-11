@@ -1,6 +1,5 @@
 library(openxlsx)
 
-
 highlight_csv_to_xlsx <- function(df, issues) {
   
   wb <- createWorkbook()
