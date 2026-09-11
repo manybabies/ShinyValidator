@@ -1,184 +1,211 @@
 # ShinyValidator
 
-Template GUI to validate datasets. Fork this template to customize for your project needs, and use as an app locally or deploy via the `rsconnect` package. You can find a live version of this template [here](https://manybabies.shinyapps.io/shinyvalidator/).
+ShinyValidator is a customizable tool for checking research datasets against predefined data specifications. Upload a CSV to identify common data-entry errors, such as missing columns, invalid values, and formatting issues, and download a highlighted Excel file to help locate and correct them.
+
+ShinyValidator is designed as a template that can be adapted to the requirements of your own project. Importantly, this tool was designed to *minimize the need to interface with R*, such that users with minimal R knowledge can nonetheless adapt the tool with ease.
+
+Fork or download this repository to customize for your project needs, and use as an app locally or deploy via the `rsconnect` package. You can find a live version of this template [here](https://manybabies.shinyapps.io/shinyvalidator/).
 
 ## Components of this repo
 
-This documentation is divided into three main sections:
+This documentation is divided into three sections:
 
-1. **Primary Functions** — describes the main functions of the validator and provides a brief guide on how to use it.
-2. **Adapting the Validator** — provides a step-by-step guide for adapting the basic validator for your own projects.
-3. **Back-end Developer Documentation** — provides more detailed documentation of the underlying code for researchers and developers who wish to modify or add functions to their validator.
+1. **Primary Functions** — how to use the validator.
+2. **Adapting the Validator** — how to customize the validator for your project.
+3. **Back-end Developer Documentation** — how the validator works and how to modify its code.
 
-If you are looking to simply make a version of the validator for your own project, you do not need to consult the **Back-end Developer Documentation** section.
+If you are simply creating a validator for your own project, you only need **Sections 1 and 2**.
 
 ---
-
 # 1. Primary Functions
 
-## Dependencies
+## Requirements
 
-You will need an up-to-date version of R (at least 4.6.0) and RStudio. The following R packages are required to run the scripts in this repo:
+To run the validator locally, you will need:
+
+* **R** (version 4.6.0 or later)
+* **RStudio**
+
+The following R packages are required:
 
 * `tidyverse`
 * `shiny`
 * `shinythemes`
+* `DT`
 * `openxlsx`
 * `yaml`
 
-To deploy the app on [shinyapps.io](https://www.shinyapps.io/) instead of running it locally, you will also need `rsconnect`.
+If you want to deploy the validator to `shinyapps.io`, you will also need `rsconnect`.
 
-This application was created using R version 4.6.0.
+## Using the validator
 
-## How to use the validator
+The basic version of the validator is straightforward to use:
 
-The basic version of the validator is straightforward to use. Here is a quick demo (note: to try out the demo, first download the validator from the repo. See **Downloading the validator** below):
+1. **Select a study** from the *Study* drop-down menu.
 
-1. Go to the [template version of the app](https://manybabies.shinyapps.io/shinyvalidator/).
+2. **Select a format** from the *Study Format* drop-down menu.
 
-2. Select a study from the *Study* drop-down menu (e.g. **samplestudy**).
+3. **Upload your dataset** by clicking *Browse* and selecting the `.csv` file you want to validate.
 
-3. Select a format from the *Study Format* drop-down menu (e.g. **sampleformat**).
+4. **Review the validation results.** The validator will indicate whether your dataset is valid. If errors are found, you can choose to view them by **column** or **row**.
 
-4. Click *Browse* and select a dataset to validate (e.g. **sample_data_valid.csv** or **sample_data_notvalid.csv**).
+5. **Download a highlighted file** by clicking *Download Highlighted File*. This produces an Excel file with invalid cells highlighted and an **Error Log** describing the detected errors.
 
-5. The output window will display whether the dataset is valid, and if not valid, which variables/columns need to be fixed.
+## Data types that the validator can check
 
-6. To easily locate the incorrect cells, you can click the *Download Highlighted File* button to download a spreadsheet that highlights all incorrect values.
+The validator can check:
+
+* **Required columns** — whether all required variables are present.
+* **Options** — whether values match a predefined list of allowed values.
+* **Numeric values** — whether values are numeric and meet specified range and decimal requirements.
+* **Strings** — whether text meets specified capitalization and character-length requirements.
+* **Regular expressions** — whether values follow a specified pattern.
+
+The specific checks performed depend on the data specification.
+
+## Creating your own validator
+
+ShinyValidator is designed as a template. You can create a validator for your own project by:
+
+1. Customizing the instructions and other user-facing content.
+2. Creating a data specification using the **Specification Creation** tab.
+3. Adding the resulting specification to the validator.
+4. Testing the validator with your own datasets.
+
+See **Section 2: Adapting the Validator** for step-by-step instructions.
 
 ---
 
 # 2. Adapting the Validator
 
-This section provides a step-by-step guide for adapting the basic validator for your own project needs.
+This section provides a step-by-step guide for adapting the validator template for your own project.
 
 ## 2.1 Downloading the validator
 
-The first step is to download the validator from the repository. Click on **Code → Download ZIP** to download the `.zip` file, then extract the `.zip` file using any compressor of your choice (e.g. WinZip).
+The first step is to download the validator from the repository.
 
-<img src="README_images/downloading_zip.png" alt="">
+Click **Code → Download ZIP** to download the repository as a `.zip` file, then extract it using any file compression program.
 
-## 2.2 Locally deploying your validator
+## 2.2 Running the validator locally
 
-The quickest way to get your validator up and running is to run it *locally* instead of deploying it on ShinyApp.
+The quickest way to get your validator running is to run it locally.
 
-To do so, open the RProject file *ShinyValidator.Rproj*. Then in your RStudio, open *app.R* and click on **Run App**. (Note: You may be prompted to install relevant packages if you haven't already).
+Open the R Project file `ShinyValidator.Rproj` in RStudio. Then open `app.R` and click **Run App**.
 
-<img src="README_images/launching_app.png" alt="">
+You may be prompted to install any required packages that are not already installed.
 
-The template version of the validator should open up in a new window. You can use this locally as-is, and we will use this to generate your customized `.yaml` files later.
+The template version of the validator should open in a new window. You can use this version to create and test your customized data specifications.
 
-From here, there are two main components of the validator you would likely want to customize:
+## 2.3 Customizing the GUI
 
-* The **Graphical User Interface (GUI)**, which is controlled by *ui.R*
-* The **data template**, which is dependent on `.yaml` files stored in the *data_specifications* folder
+The validator contains several stand-in messages and instructions that can be customized for your project.
 
-Here is a step-by-step guide on tailoring these two components.
+These can be changed directly in `ui.R`. Find the relevant text and replace it with your own instructions, links, or other content.
 
-## 2.3 Customizing your GUI
+You can also modify the layout and add additional elements if you are familiar with Shiny and Markdown.
 
-Your locally deployed app should have several stand-in messages. These messages can be customized in the *ui.R* file by finding the corresponding line of code. For instance, if you would like to have a welcome message, you can adjust the corresponding line 26.
+> **Tip:** For most projects, you only need to change the user-facing text. You do not need to modify the underlying code.
 
-<img src="README_images/welcome_message_1.png" alt="">
+## 2.4 Creating your data specification
 
-For example, you can simply replace the message with your own and click **Reload App** to see your changes.
+The next step is to specify what columns your dataset must contain and what values are allowed for each column.
 
-<img src="README_images/welcome_message_2.png" alt="">
+Data specifications are stored as `.yaml` files in the `data_specifications` folder. However, **you do not need to write the YAML code yourself**.
 
-You can similarly change any of the other fields by finding where the corresponding code is.
+Instead, open the validator and navigate to the **Specification Creation** tab.
 
-The template version of the validator provides a few useful fields that an average user may need, but you can add more if you are familiar with using Markdown.
+Enter the number of variables you want to include in your specification. The validator will then generate fields for you to define each variable.
 
-## 2.4 Creating your data template
+> **Important:** You can change the number of variables at any time, but decreasing the number of variables will erase some of your progress (e.g. going from 10 down to 9 will erase variable 10 permanently)
 
-The next step is to specify your data template, i.e. what columns/variables must a dataset have, and what values are "allowed" for each column/variable.
+There are three main variable types:
 
-The specifications are stored as `.yaml` files in the **data_specifications** folder, but **you do not need to hand write the code yourself**!
+* **Options** — values must match one of a predefined set of options.
+* **Numeric** — values must be numeric and can optionally be restricted by range and decimal requirements.
+* **String** — values can be open-ended but can be restricted by capitalization, character length, or a regular expression.
 
-Open your locally deployed validator, and navigate to the **Specification Creation** tab. You will see a single field that asks how many variables you would like to have for your data template:
+### Options
 
-<img src="README_images/template_creation_1.png" alt="">
+Use **Options** when you want to specify exactly which values are allowed.
 
-Once you enter a number, several new fields will appear for you to specify your columns/variables.
+For example, a `color` variable could allow only:
 
-For the most part, these fields should be self-explanatory.
+* `red`
+* `yellow`
+* `blue`
 
-> **IMPORTANT NOTE:** If you change the number of variables at any point, **you will lose your progress**.
+### Numeric
 
-There are three variable types that the validator can check: **options**, **numeric**, and **strings**.
+Use **Numeric** when a variable should contain numbers.
 
-<details>
-<summary><strong>Options</strong></summary>
+You can optionally specify:
 
-This variable type allows you to specify which **exact entries** are allowed.
+* a minimum value;
+* a maximum value;
+* whether decimal values are allowed; and
+* the minimum and maximum number of decimal places.
 
-For instance, if I have a variable called "color," and the only possible values are "red", "yellow", and "blue", I would specify as such:
+For example, a `reaction_time_ms` variable could be restricted to values between `300` and `10000`.
 
-<img src="README_images/options.png" alt="" width="300" height="500">
+### String
 
-</details>
+Use **String** when a variable contains open-ended text.
 
-<details>
-<summary><strong>Numeric</strong></summary>
+You can optionally restrict:
 
-This variable type allows you to specify that a particular column can only take numeric values.
+* capitalization;
+* minimum character length; and
+* maximum character length.
 
-In addition, you can create a range restriction to further constrain the maximum and minimum values that are allowed.
+You can also use examples to generate a regular-expression-based restriction for variables that follow a consistent pattern.
 
-For instance, if I have a variable "reaction_time_ms" with a minimum value of 300 and a maximum of 10000, I would specify as such:
+## 2.5 Adding your data specification
 
-<img src="README_images/numeric.png" alt="" width="300" height="500">
+Once you have finished defining your variables, click **Download Setup** to download your `.yaml` specification.
 
-</details>
+Move the downloaded file into the `data_specifications` folder.
 
-<details>
-<summary><strong>String</strong></summary>
+Rename the file using the following format:
 
-This variable type allows for open-ended entries (useful if it is impractical to list out all possible entries), but can be used to place restrictions on capitalization as well as maximum character length.
+```text
+studyname_formatname.yaml
+```
 
-For instance, if I am conducting a large-scale collaborative project where I collect individual lab ids, I may want to allow for open-ended entries for labs to choose what they would like to be called (lab_id).
+For example:
 
-That said, I may want a character limit (e.g. 10 characters) so people don't get too creative, and want to remove all capitalization for easier processing. I would then specify as such:
+```text
+FishSpeed_RawData.yaml
+```
 
-<img src="README_images/string.png" alt="" width="300" height="500">
+would create a study called `FishSpeed` with a format called `RawData`.
 
-</details>
+> **Important:** The filename must not contain spaces or special characters. Use capitalization to separate words.
 
-## 2.5 Adding your data specification to the validator
+After adding the file, relaunch the application. Your new study and format should now appear in the appropriate drop-down menus.
 
-After specifying all your variables, you can click the **Download Setup** button to download a copy of your `.yaml` file.
+## 2.6 Testing your specification
 
-The final thing to do is to move the `.yaml` file into the *data_specifications* folder, and rename it following this naming scheme:
+Before using your validator with real datasets, test your new specification with a small sample dataset.
 
-*studyname_formatname*
+Ideally, create a `.csv` file containing:
 
-For example, if this particular data template is for a study called "fishspeed" and this is the raw data file, I would name this `.yaml` file *FishSpeed_RawData*.
+* at least one row with completely valid data; and
+* several rows containing errors that you expect the validator to detect.
 
-> **Note:** The file name must not contain spaces or special characters. Use capitalization to separate words.
+Upload this dataset to the validator and check that the expected errors are identified.
 
-Once you place the renamed `.yaml` file in the *data_specifications* folder, relaunch your app.
+You can also click **Download Highlighted File** to create an Excel version of the dataset with invalid cells highlighted.
 
-You should now be able to find your study and format in the dropdown menu on the left!
+## 2.7 Making manual adjustments
 
-<img src="README_images/completed_yaml.png" alt="">
+If you discover that your specification needs to be changed after testing, you can either recreate it using the **Specification Creation** tab or edit the `.yaml` file directly.
 
-## 2.6 Testing your template
+The `.yaml` file contains the same information as the Specification Creation interface, but in a format that can be edited manually.
 
-The final step is to test your newly created template.
+For most users, the **Specification Creation** tab is the easiest way to make changes.
 
-Create a `.csv` file that contains all of the relevant columns (or, if you have an existing dataset, use that!). Create one row that contains zero errors (i.e. perfect data entry), and a few rows that contain some errors you anticipate seeing.
+Once your validator is working as expected, you can use it locally or deploy it online using `shinyapps.io`.
 
-In your app, click **Browse** and navigate to this sample dataset.
-
-It should correctly identify all the errors you intentionally made.
-
-For easier comparisons, click the **Download Highlighted File** button to download a spreadsheet that highlights all errors.
-
-## 2.7 Troubleshooting and minor adjustments
-
-After testing your template, if you notice something is not working as intended (or if you overlooked a specification that you need), you can either remake the entire template following the steps above, or manually make adjustments by opening the `.yaml` file.
-
-The `.yaml` file is simply a less user-friendly version of the specification creation page.
 
 ---
 
@@ -206,7 +233,7 @@ The validator also relies on `.yaml` files stored in the `data_specifications` f
 </details>
 
 <details>
-<summary><strong>3.2 `app.R`</strong></summary>
+<summary><strong>3.2 app.R</strong></summary>
 
 `app.R` is the entry point for the Shiny application. It:
 
