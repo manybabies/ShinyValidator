@@ -17,9 +17,11 @@ This documentation is divided into three sections:
 If you are simply creating a validator for your own project, you only need **Sections 1 and 2**.
 
 ---
+
 # 1. Primary Functions
 
-## Requirements
+<details>
+<summary><strong>Requirements</strong></summary>
 
 To run the validator locally, you will need:
 
@@ -37,7 +39,10 @@ The following R packages are required:
 
 If you want to deploy the validator to `shinyapps.io`, you will also need `rsconnect`.
 
-## Using the validator
+</details>
+
+<details>
+<summary><strong>Using the validator</strong></summary>
 
 The basic version of the validator is straightforward to use:
 
@@ -51,7 +56,10 @@ The basic version of the validator is straightforward to use:
 
 5. **Download a highlighted file** by clicking *Download Highlighted File*. This produces an Excel file with invalid cells highlighted and an **Error Log** describing the detected errors.
 
-## Data types that the validator can check
+</details>
+
+<details>
+<summary><strong>Data types that the validator can check</strong></summary>
 
 The validator can check:
 
@@ -63,7 +71,10 @@ The validator can check:
 
 The specific checks performed depend on the data specification.
 
-## Creating your own validator
+</details>
+
+<details>
+<summary><strong>Creating your own validator</strong></summary>
 
 ShinyValidator is designed as a template. You can create a validator for your own project by:
 
@@ -74,19 +85,25 @@ ShinyValidator is designed as a template. You can create a validator for your ow
 
 See **Section 2: Adapting the Validator** for step-by-step instructions.
 
+</details>
+
 ---
 
 # 2. Adapting the Validator
 
 This section provides a step-by-step guide for adapting the validator template for your own project.
 
-## 2.1 Downloading the validator
+<details>
+<summary><strong>2.1 Downloading the validator</strong></summary>
 
 The first step is to download the validator from the repository.
 
 Click **Code → Download ZIP** to download the repository as a `.zip` file, then extract it using any file compression program.
 
-## 2.2 Running the validator locally
+</details>
+
+<details>
+<summary><strong>2.2 Running the validator locally</strong></summary>
 
 The quickest way to get your validator running is to run it locally.
 
@@ -96,7 +113,10 @@ You may be prompted to install any required packages that are not already instal
 
 The template version of the validator should open in a new window. You can use this version to create and test your customized data specifications.
 
-## 2.3 Customizing the GUI
+</details>
+
+<details>
+<summary><strong>2.3 Customizing the GUI</strong></summary>
 
 The validator contains several stand-in messages and instructions that can be customized for your project.
 
@@ -106,7 +126,10 @@ You can also modify the layout and add additional elements if you are familiar w
 
 > **Tip:** For most projects, you only need to change the user-facing text. You do not need to modify the underlying code.
 
-## 2.4 Creating your data specification
+</details>
+
+<details>
+<summary><strong>2.4 Creating your data specification</strong></summary>
 
 The next step is to specify what columns your dataset must contain and what values are allowed for each column.
 
@@ -116,7 +139,7 @@ Instead, open the validator and navigate to the **Specification Creation** tab.
 
 Enter the number of variables you want to include in your specification. The validator will then generate fields for you to define each variable.
 
-> **Important:** You can change the number of variables at any time, but decreasing the number of variables will erase some of your progress (e.g. going from 10 down to 9 will erase variable 10 permanently)
+> **Important:** You can change the number of variables at any time, but decreasing the number of variables will erase some of your progress (e.g. going from 10 down to 9 will erase variable 10 permanently).
 
 There are three main variable types:
 
@@ -124,7 +147,8 @@ There are three main variable types:
 * **Numeric** — values must be numeric and can optionally be restricted by range and decimal requirements.
 * **String** — values can be open-ended but can be restricted by capitalization, character length, or a regular expression.
 
-### Options
+<details>
+<summary><strong>Options</strong></summary>
 
 Use **Options** when you want to specify exactly which values are allowed.
 
@@ -134,7 +158,10 @@ For example, a `color` variable could allow only:
 * `yellow`
 * `blue`
 
-### Numeric
+</details>
+
+<details>
+<summary><strong>Numeric</strong></summary>
 
 Use **Numeric** when a variable should contain numbers.
 
@@ -147,7 +174,10 @@ You can optionally specify:
 
 For example, a `reaction_time_ms` variable could be restricted to values between `300` and `10000`.
 
-### String
+</details>
+
+<details>
+<summary><strong>String</strong></summary>
 
 Use **String** when a variable contains open-ended text.
 
@@ -159,7 +189,12 @@ You can optionally restrict:
 
 You can also use examples to generate a regular-expression-based restriction for variables that follow a consistent pattern.
 
-## 2.5 Adding your data specification
+</details>
+
+</details>
+
+<details>
+<summary><strong>2.5 Adding your data specification</strong></summary>
 
 Once you have finished defining your variables, click **Download Setup** to download your `.yaml` specification.
 
@@ -183,7 +218,10 @@ would create a study called `FishSpeed` with a format called `RawData`.
 
 After adding the file, relaunch the application. Your new study and format should now appear in the appropriate drop-down menus.
 
-## 2.6 Testing your specification
+</details>
+
+<details>
+<summary><strong>2.6 Testing your specification</strong></summary>
 
 Before using your validator with real datasets, test your new specification with a small sample dataset.
 
@@ -196,7 +234,10 @@ Upload this dataset to the validator and check that the expected errors are iden
 
 You can also click **Download Highlighted File** to create an Excel version of the dataset with invalid cells highlighted.
 
-## 2.7 Making manual adjustments
+</details>
+
+<details>
+<summary><strong>2.7 Making manual adjustments</strong></summary>
 
 If you discover that your specification needs to be changed after testing, you can either recreate it using the **Specification Creation** tab or edit the `.yaml` file directly.
 
@@ -206,6 +247,7 @@ For most users, the **Specification Creation** tab is the easiest way to make ch
 
 Once your validator is working as expected, you can use it locally or deploy it online using `shinyapps.io`.
 
+</details>
 
 ---
 
@@ -220,12 +262,12 @@ This section is intended for researchers and developers who wish to add new func
 
 The validator is organized across five primary R files:
 
-| File | Purpose |
-| --- | --- |
-| `app.R` | Application initialization and launch |
-| `ui.R` | User interface and layout |
-| `server.R` | Server-side application logic |
-| `common.R` | Shared functions and validation functions |
+| File             | Purpose                                       |
+| ---------------- | --------------------------------------------- |
+| `app.R`          | Application initialization and launch         |
+| `ui.R`           | User interface and layout                     |
+| `server.R`       | Server-side application logic                 |
+| `common.R`       | Shared functions and validation functions     |
 | `ErrorHandler.R` | Error handling and downloadable error reports |
 
 The validator also relies on `.yaml` files stored in the `data_specifications` folder to define study-specific data requirements.
