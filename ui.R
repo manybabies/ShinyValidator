@@ -1,18 +1,82 @@
 library(shiny)
 library(shinythemes)
 library(DT)
+library(yaml)
 
+# Load shared functions
 source("common.R")
+
+# Load configuration
+config <- yaml::read_yaml("configuration/config.yaml")
 
 # UI
 ui <- fluidPage(
+  
   theme = shinythemes::shinytheme("spacelab"),
   
-  titlePanel("ShinyValidator Template"),
+  # Navigation styling
+  tags$head(
+    tags$style(HTML("
+      
+      /* Navigation heading */
+      .navigation-menu .control-label {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+      
+      /* Remove default radio button spacing */
+      .navigation-menu .radio {
+        margin-top: 0;
+        margin-bottom: 4px;
+      }
+      
+      /* Navigation items */
+      .navigation-menu .radio label {
+        display: block;
+        padding: 10px 12px;
+        margin: 0;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: normal;
+        transition: background-color 0.15s ease;
+      }
+      
+      /* Hide the radio circles */
+      .navigation-menu .radio input[type='radio'] {
+        position: absolute;
+        opacity: 0;
+      }
+      
+      /* Hover effect */
+      .navigation-menu .radio label:hover {
+        background-color: #e9ecef;
+      }
+      
+      /* Selected navigation item */
+      .navigation-menu .radio input[type='radio']:checked + span {
+        font-weight: 600;
+      }
+      
+      .navigation-menu .radio:has(input[type='radio']:checked) label {
+        background-color: #d9eaf7;
+        color: #245a7a;
+      }
+      
+    "))
+  ),
+  
+  titlePanel(config$app_title),
+  
   br(),
   
   sidebarLayout(
+    
+    # Sidebar
     sidebarPanel(
+      width = 3,
+      
+      # Study selection
       selectInput(
         "study",
         h4("Study"),
@@ -32,102 +96,220 @@ ui <- fluidPage(
         )
       ),
       
-      downloadButton(
-        "downloadHighlighted",
-        "Download Highlighted File"
+      hr(),
+      
+      # Navigation
+      div(
+        class = "navigation-menu",
+        
+        radioButtons(
+          "page",
+          "Validator Functions",
+          choices = c(
+            "Validation Results" = "validation_results",
+            "Specification Details" = "specification",
+            "Specification Creation" = "specification_creation",
+            "Configuration Creation" = "configuration_creation"
+          ),
+          selected = "validation_results"
+        )
       )
     ),
     
+    # Main panel
     mainPanel(
-      tabsetPanel(
+      width = 9,
+      
+      # Validation Results
+      conditionalPanel(
+        condition = "input.page == 'validation_results'",
         
-        tabPanel(
-          "Validation Results",
-          
-          p(
-            strong("This is where you put the welcome message!")
-          ),
-          
-          p(
-            em(
-              "You can also put a secondary message here with more instructions, perhaps referencing a link with helpful links:"
-            ),
-            tags$a(
-              href = "https://github.com/manybabies/ShinyValidator",
-              "For example, link to this app's Github repo."
-            )
-          ),
-          
-          p(
-            strong(
-              "This is where you can provide specific instructions on how to use"
-            ),
-            em("your"),
-            strong("validator.")
-          ),
-          
-          p(
-            "Click",
-            em("Browse"),
-            "to select the dataset you would like to validate."
-          ),
-          radioButtons(
-            "error_view",
-            "View errors by:",
-            choices = c(
-              "No in-app error display" = "none",
-              "Column" = "column",
-              "Row" = "row"
-            ),
-            selected = "none",
-            inline = TRUE
-          ),
-          
-          uiOutput("errors_by_column"),
-          
-          uiOutput("row_actions"),
-          
-          DTOutput("validation_preview")
-          
+        h3("Validation Results"),
+        
+        p(
+          strong(config$welcome_message)
         ),
         
-        tabPanel(
-          "Specification Creation",
-          
-          h4("Make a Decision"),
-          
-          numericInput(
-            "numVars",
-            "Number of Variables:",
-            value = 0,
-            min = 0
-          ),
-          
-          tabsetPanel(
-            id = "variable_tabs",
-            type = "tabs"
-          ),
-          
-          conditionalPanel(
-            condition = "input.numVars > 0",
-            uiOutput("downloadSetupButton")
+        p(
+          em(config$secondary_message),
+          tags$a(
+            href = config$secondary_link_url,
+            config$secondary_link_text
           )
         ),
         
-        tabPanel(
-          "Specification",
-          
-          p(
-            "This is the human-readable version of the specification you have chosen."
+        p(
+          strong(config$instructions_before),
+          em(config$instructions_emphasis),
+          strong(config$instructions_after)
+        ),
+        
+        p(
+          config$upload_instructions_before,
+          em(config$upload_instructions_emphasis),
+          config$upload_instructions_after
+        ),
+        
+        br(),
+        
+        downloadButton(
+          "downloadHighlighted",
+          "Download Highlighted File"
+        ),
+        
+        br(),
+        br(),
+        
+        radioButtons(
+          "error_view",
+          "View errors by:",
+          choices = c(
+            "No in-app error display" = "none",
+            "Column" = "column",
+            "Row" = "row"
           ),
-          
-          uiOutput("specification")
+          selected = "none",
+          inline = TRUE
+        ),
+        
+        uiOutput("errors_by_column"),
+        
+        DTOutput("validation_preview")
+      ),
+      
+      # Specification
+      conditionalPanel(
+        condition = "input.page == 'specification'",
+        
+        h3("Specification Details"),
+        
+        p(
+          config$specification_message
+        ),
+        
+        uiOutput("specification")
+      ),
+      
+      # Specification Creation
+      conditionalPanel(
+        condition = "input.page == 'specification_creation'",
+        
+        h3("Specification Creation"),
+        
+        h4("Make a Decision"),
+        
+        numericInput(
+          "numVars",
+          "Number of Variables:",
+          value = 0,
+          min = 0
+        ),
+        
+        tabsetPanel(
+          id = "variable_tabs",
+          type = "tabs"
+        ),
+        
+        conditionalPanel(
+          condition = "input.numVars > 0",
+          uiOutput("downloadSetupButton")
+        )
+      ),
+      
+      # Configuration Creation
+      conditionalPanel(
+        condition = "input.page == 'configuration_creation'",
+        
+        h3("Configuration Creation"),
+        
+        h4("Create your configuration"),
+        
+        textInput(
+          "config_app_title",
+          "Application title:",
+          value = ""
+        ),
+        
+        textAreaInput(
+          "config_welcome_message",
+          "Welcome message:",
+          value = "",
+          rows = 3
+        ),
+        
+        textAreaInput(
+          "config_secondary_message",
+          "Secondary message:",
+          value = "",
+          rows = 3
+        ),
+        
+        textInput(
+          "config_secondary_link_url",
+          "Secondary link URL:",
+          value = ""
+        ),
+        
+        textInput(
+          "config_secondary_link_text",
+          "Secondary link text:",
+          value = ""
+        ),
+        
+        textInput(
+          "config_instructions_before",
+          "Main instructions — before emphasized text:",
+          value = ""
+        ),
+        
+        textInput(
+          "config_instructions_emphasis",
+          "Main instructions — emphasized text:",
+          value = ""
+        ),
+        
+        textInput(
+          "config_instructions_after",
+          "Main instructions — after emphasized text:",
+          value = ""
+        ),
+        
+        textInput(
+          "config_upload_instructions_before",
+          "Upload instructions — before emphasized text:",
+          value = ""
+        ),
+        
+        textInput(
+          "config_upload_instructions_emphasis",
+          "Upload instructions — emphasized text:",
+          value = ""
+        ),
+        
+        textInput(
+          "config_upload_instructions_after",
+          "Upload instructions — after emphasized text:",
+          value = ""
+        ),
+        
+        textAreaInput(
+          "config_specification_message",
+          "Specification message:",
+          value = "",
+          rows = 3
+        ),
+        
+        br(),
+        
+        downloadButton(
+          "downloadConfiguration",
+          "Download Configuration"
         )
       )
     )
   ),
   
-  # Update variable tab names without rebuilding the inputs
+  # Update variable tab names
   tags$script(HTML("
     document.addEventListener('input', function(event) {
       
