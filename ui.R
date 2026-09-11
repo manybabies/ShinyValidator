@@ -1,14 +1,18 @@
 library(shiny)
 library(shinythemes)
 library(DT)
+library(yaml)
 
 source("common.R")
+
+# Load application configuration
+config <- yaml::read_yaml("configuration/config.yaml")
 
 # UI
 ui <- fluidPage(
   theme = shinythemes::shinytheme("spacelab"),
   
-  titlePanel("ShinyValidator Template"),
+  titlePanel(config$app_title),
   br(),
   
   sidebarLayout(
@@ -41,36 +45,34 @@ ui <- fluidPage(
     mainPanel(
       tabsetPanel(
         
+        # Validation Results
         tabPanel(
           "Validation Results",
           
           p(
-            strong("This is where you put the welcome message!")
+            strong(config$welcome_message)
           ),
           
           p(
-            em(
-              "You can also put a secondary message here with more instructions, perhaps referencing a link with helpful links:"
-            ),
+            em(config$secondary_message),
             tags$a(
-              href = "https://github.com/manybabies/ShinyValidator",
-              "For example, link to this app's Github repo."
+              href = config$secondary_link_url,
+              config$secondary_link_text
             )
           ),
           
           p(
-            strong(
-              "This is where you can provide specific instructions on how to use"
-            ),
-            em("your"),
-            strong("validator.")
+            strong(config$instructions_before),
+            em(config$instructions_emphasis),
+            strong(config$instructions_after)
           ),
           
           p(
-            "Click",
-            em("Browse"),
-            "to select the dataset you would like to validate."
+            config$upload_instructions_before,
+            em(config$upload_instructions_emphasis),
+            config$upload_instructions_after
           ),
+          
           radioButtons(
             "error_view",
             "View errors by:",
@@ -91,6 +93,7 @@ ui <- fluidPage(
           
         ),
         
+        # Specification Creation
         tabPanel(
           "Specification Creation",
           
@@ -114,11 +117,12 @@ ui <- fluidPage(
           )
         ),
         
+        # Specification
         tabPanel(
           "Specification",
           
           p(
-            "This is the human-readable version of the specification you have chosen."
+            config$specification_message
           ),
           
           uiOutput("specification")
