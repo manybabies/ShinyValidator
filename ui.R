@@ -14,6 +14,58 @@ ui <- fluidPage(
   
   theme = shinythemes::shinytheme("spacelab"),
   
+  # Navigation styling
+  tags$head(
+    tags$style(HTML("
+      
+      /* Navigation heading */
+      .navigation-menu .control-label {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+      
+      /* Remove default radio button spacing */
+      .navigation-menu .radio {
+        margin-top: 0;
+        margin-bottom: 4px;
+      }
+      
+      /* Navigation items */
+      .navigation-menu .radio label {
+        display: block;
+        padding: 10px 12px;
+        margin: 0;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: normal;
+        transition: background-color 0.15s ease;
+      }
+      
+      /* Hide the radio circles */
+      .navigation-menu .radio input[type='radio'] {
+        position: absolute;
+        opacity: 0;
+      }
+      
+      /* Hover effect */
+      .navigation-menu .radio label:hover {
+        background-color: #e9ecef;
+      }
+      
+      /* Selected navigation item */
+      .navigation-menu .radio input[type='radio']:checked + span {
+        font-weight: 600;
+      }
+      
+      .navigation-menu .radio:has(input[type='radio']:checked) label {
+        background-color: #d9eaf7;
+        color: #245a7a;
+      }
+      
+    "))
+  ),
+  
   titlePanel(config$app_title),
   
   br(),
@@ -47,16 +99,20 @@ ui <- fluidPage(
       hr(),
       
       # Navigation
-      radioButtons(
-        "page",
-        "Navigation",
-        choices = c(
-          "Validation Results" = "validation_results",
-          "Specification" = "specification",
-          "Specification Creation" = "specification_creation",
-          "Configuration Creation" = "configuration_creation"
-        ),
-        selected = "validation_results"
+      div(
+        class = "navigation-menu",
+        
+        radioButtons(
+          "page",
+          "Validator Functions",
+          choices = c(
+            "Validation Results" = "validation_results",
+            "Specification Details" = "specification",
+            "Specification Creation" = "specification_creation",
+            "Configuration Creation" = "configuration_creation"
+          ),
+          selected = "validation_results"
+        )
       )
     ),
     
@@ -125,7 +181,7 @@ ui <- fluidPage(
       conditionalPanel(
         condition = "input.page == 'specification'",
         
-        h3("Specification"),
+        h3("Specification Details"),
         
         p(
           config$specification_message
