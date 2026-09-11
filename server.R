@@ -955,19 +955,24 @@ server <- function(input, output, session) {
                 paste0("example_1_", i),
                 "Example value 1:"
               ),
-              
               textInput(
                 paste0("example_2_", i),
                 "Example value 2:"
               ),
-              
               textInput(
                 paste0("example_3_", i),
                 "Example value 3:"
               ),
-              
+              textInput(
+                paste0("example_4_", i),
+                "Example value 4:"
+              ),
+              textInput(
+                paste0("example_5_", i),
+                "Example value 5:"
+              ),
               helpText(
-                "Enter three examples of valid values."
+                "Enter five examples of valid values."
               ),
               
               uiOutput(
@@ -1143,7 +1148,9 @@ server <- function(input, output, session) {
             examples <- c(
               input[[paste0("example_1_", j)]],
               input[[paste0("example_2_", j)]],
-              input[[paste0("example_3_", j)]]
+              input[[paste0("example_3_", j)]],
+              input[[paste0("example_4_", j)]],
+              input[[paste0("example_5_", j)]]
             )
             
             if (
@@ -1154,7 +1161,7 @@ server <- function(input, output, session) {
               return(
                 tags$p(
                   style = "color: red;",
-                  "Please enter all three example values."
+                  "Please enter all five example values."
                 )
               )
             }
@@ -1196,7 +1203,9 @@ server <- function(input, output, session) {
         examples <- c(
           input[[paste0("example_1_", i)]],
           input[[paste0("example_2_", i)]],
-          input[[paste0("example_3_", i)]]
+          input[[paste0("example_3_", i)]],
+          input[[paste0("example_4_", i)]],
+          input[[paste0("example_5_", i)]]
         )
         
         if (
@@ -1229,7 +1238,7 @@ server <- function(input, output, session) {
         tags$p(
           tags$strong(
             style = "color: red;",
-            "Please enter all three example values before downloading the setup."
+            "Please enter all five example values before downloading the setup."
           )
         )
       )
@@ -1390,6 +1399,8 @@ server <- function(input, output, session) {
     
     ## Highlight invalid cells
     
+    invalid_cells <- list()
+    
     for (issue in issues) {
       
       if (
@@ -1400,23 +1411,68 @@ server <- function(input, output, session) {
       }
       
       column_name <- issue$column
-      rows <- issue$invalid_row
+      rows <- as.integer(issue$invalid_row)
       
       if (
         column_name %in% names(df) &&
         length(rows) > 0
       ) {
         
-        table <- DT::formatStyle(
-          table,
-          columns = column_name,
-          rows = rows,
-          backgroundColor = "yellow"
-        )
+        column_index <- which(names(df) == column_name) - 1
+        
+        for (row in rows) {
+          
+          invalid_cells[[length(invalid_cells) + 1]] <- list(
+            row = row - 1,
+            column = column_index
+          )
+        }
       }
     }
     
+    ## Create JavaScript for cell highlighting
+    
+    highlight_js <- if (length(invalid_cells) > 0) {
+      
+      cells_json <- jsonlite::toJSON(
+        invalid_cells,
+        auto_unbox = TRUE
+      )
+      
+      DT::JS(
+        paste0(
+          "function(row, data, displayNum, displayIndex, dataIndex) {",
+          "  var invalidCells = ", cells_json, ";",
+          "  invalidCells.forEach(function(cell) {",
+          "    if (cell.row === dataIndex) {",
+          "      $('td', row).eq(cell.column).css('background-color', 'yellow');",
+          "    }",
+          "  });",
+          "}"
+        )
+      )
+      
+    } else {
+      
+      DT::JS(
+        "function(row, data, displayNum, displayIndex, dataIndex) {}"
+      )
+    }
+    
+    ## Create table
+    
+    table <- DT::datatable(
+      df,
+      options = list(
+        pageLength = 10,
+        scrollX = TRUE,
+        rowCallback = highlight_js
+      ),
+      rownames = FALSE
+    )
+    
     table
+    
   })
 }
 
