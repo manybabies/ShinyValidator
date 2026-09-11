@@ -1,5 +1,0 @@
-participant_id,age,condition
-ABC123,25,control
-ABC456,150,treatment
-WRONG,30,control
-ABC789,abc,treatment

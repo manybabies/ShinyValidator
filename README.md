@@ -83,6 +83,8 @@ ShinyValidator is designed as a template. You can create a validator for your ow
 3. Adding the resulting specification to the validator.
 4. Testing the validator with your own datasets.
 
+> **Try it out:** Launch the validator and try out the built-in Demo specification. In your extracted RProject, there is a "sample_datasets" folder containing a valid and an invalid dataset. Run those through the validator to see what the output looks like before moving on.
+
 See **Section 2: Adapting the Validator** for step-by-step instructions.
 
 </details>
@@ -91,7 +93,7 @@ See **Section 2: Adapting the Validator** for step-by-step instructions.
 
 # 2. Adapting the Validator
 
-This section provides a step-by-step guide for adapting the validator template for your own project.
+This section provides a step-by-step guide for adapting the validator template for your own project. Before proceeding with this section, please make sure you have everything in the Requirements section above installed.
 
 <details>
 <summary><strong>2.1 Downloading the validator</strong></summary>
@@ -100,6 +102,8 @@ The first step is to download the validator from the repository.
 
 Click **Code → Download ZIP** to download the repository as a `.zip` file, then extract it using any file compression program.
 
+![](images/step_2.1.png)
+
 </details>
 
 <details>
@@ -107,9 +111,11 @@ Click **Code → Download ZIP** to download the repository as a `.zip` file, the
 
 The quickest way to get your validator running is to run it locally.
 
-Open the R Project file `ShinyValidator.Rproj` in RStudio. Then open `app.R` and click **Run App**.
+Open the R Project file `ShinyValidator.Rproj`. Then open `app.R` and click **Run App**.
 
-You may be prompted to install any required packages that are not already installed.
+![](images/step_2.2.png)
+
+Note that the exact location of these buttons may differ depending on your console setup. You may be prompted to install any required packages that are not already installed.
 
 The template version of the validator should open in a new window. You can use this version to create and test your customized data specifications.
 
@@ -120,7 +126,22 @@ The template version of the validator should open in a new window. You can use t
 
 The validator contains several stand-in messages and instructions that can be customized for your project.
 
-These can be changed directly in `ui.R`. Find the relevant text and replace it with your own instructions, links, or other content.
+These can be changed directly in `ui.R`. The table below shows where the main parts of the user interface are defined.
+
+| Part of the interface          | Where to look in `ui.R`                                      | What you can change                                           |
+| ------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------- |
+| **Validation Results tab**     | `tabPanel("Validation Results", ...)`                        | Tab name and contents                                         |
+| **Welcome/instruction text**   | `h3()`, `p()`, and `HTML()` elements near the top of the tab | Instructions, descriptions, links, and other user-facing text |
+| **Study drop-down**            | `selectInput("study", ...)`                                  | Label and instructions for selecting a study                  |
+| **Study Format drop-down**     | `selectInput("format", ...)`                                 | Label and instructions for selecting a format                 |
+| **CSV upload**                 | `fileInput("file", ...)`                                     | Upload instructions and accepted file types                   |
+| **Error display options**      | `radioButtons(...)`                                          | Labels and choices for viewing errors by column or row        |
+| **Validation preview**         | `DTOutput(...)`                                              | Placement and surrounding instructions for the preview table  |
+| **Highlighted file download**  | `downloadButton(...)`                                        | Button label and surrounding instructions                     |
+| **Specification Creation tab** | `tabPanel("Specification Creation", ...)`                    | Tab name and specification-creation instructions              |
+| **Specification tab**          | `tabPanel("Specification", ...)`                             | Tab name and specification display                            |
+
+The exact line numbers may change as you customize the application, so it is better to use the element names above to locate the relevant section of `ui.R`.
 
 You can also modify the layout and add additional elements if you are familiar with Shiny and Markdown.
 

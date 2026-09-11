@@ -1,0 +1,21 @@
+study_ID,condition,age,reaction_time,participant_initials,participant_code,comments,trial_number,response,session_label,researcher_code,notes
+demo2026a,control,3,452.37,AB,P0001,No issues,1,TRUE,session1,AB01,Good
+demo2026a,experimental,4,621.54,CD,P0002,Completed normally,2,FALSE,session2,CD02,Good
+demo2026a,familiar,5,387.21,EF,P0003,Typical response,3,unknown,session3,EF03,Good
+demo2026a,control,4,510.23,GH,P0004,No issues,4,TRUE,session4,GH04,Good
+demo2026a,experimental,3,745.82,IJ,P0005,Completed normally,5,FALSE,session5,IJ05,Good
+demo2026a,familiar,5,398.46,KL,P0006,Typical response,6,TRUE,session6,KL06,Good
+demo2026a,control,3,812.19,MN,P0007,No issues,7,unknown,session7,MN07,Good
+demo2026a,experimental,5,563.77,OP,P0008,Completed normally,8,TRUE,session8,OP08,Good
+demo2026a,familiar,5,421.35,QR,P0009,Typical response,9,FALSE,session9,QR09,Good
+demo2026a,control,4,675.93,ST,P0010,No issues,10,TRUE,session10,ST10,Good
+demo2026a,experimental,5,334.68,UV,P0011,Completed normally,11,unknown,session11,UV11,Good
+demo2026a,familiar,3,902.43,WX,P0012,Typical response,12,FALSE,session12,WX12,Good
+demo2026a,control,5,478.25,YZ,P0013,No issues,13,TRUE,session13,YZ13,Good
+demo2026a,experimental,3,721.16,AC,P0014,Completed normally,14,FALSE,session14,AC14,Good
+demo2026a,familiar,4,356.72,BD,P0015,Typical response,15,unknown,session15,BD15,Good
+demo2026a,control,5,599.31,CE,P0016,No issues,16,TRUE,session16,CE16,Good
+demo2026a,experimental,4,844.57,DF,P0017,Completed normally,17,FALSE,session17,DF17,Good
+demo2026a,familiar,3,467.89,EG,P0018,Typical response,18,TRUE,session18,EG18,Good
+demo2026a,control,4,703.44,FH,P0019,No issues,19,unknown,session19,FH19,Good
+demo2026a,experimental,5,315.62,GI,P0020,Completed normally,20,FALSE,session20,GI20,Good
