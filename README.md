@@ -188,21 +188,22 @@ The **Back-end Developer Documentation** provides detailed information about the
 
 This section is intended for researchers and developers who wish to add new functions, modify existing functionality, or otherwise customize the validator beyond the options described in Section 2.
 
-## 3.1 Application architecture
+<details>
+<summary><strong>3.1 Application architecture</strong></summary>
 
 The validator is organized across five primary R files:
 
-| File             | Purpose                                       |
-| ---------------- | --------------------------------------------- |
-| `app.R`          | Application initialization and launch         |
-| `ui.R`           | User interface and layout                     |
-| `server.R`       | Server-side application logic                 |
-| `common.R`       | Shared functions and validation functions     |
+| File | Purpose |
+| --- | --- |
+| `app.R` | Application initialization and launch |
+| `ui.R` | User interface and layout |
+| `server.R` | Server-side application logic |
+| `common.R` | Shared functions and validation functions |
 | `ErrorHandler.R` | Error handling and downloadable error reports |
 
 The validator also relies on `.yaml` files stored in the `data_specifications` folder to define study-specific data requirements.
 
-Detailed documentation of each component is provided below.
+</details>
 
 <details>
 <summary><strong>3.2 `app.R`</strong></summary>
