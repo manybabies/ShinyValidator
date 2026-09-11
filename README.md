@@ -102,7 +102,7 @@ The first step is to download the validator from the repository.
 
 Click **Code → Download ZIP** to download the repository as a `.zip` file, then extract it using any file compression program.
 
-![](images/step_2.1.png)
+![](README_images/step_2.1.png)
 
 </details>
 
@@ -113,7 +113,7 @@ The quickest way to get your validator running is to run it locally.
 
 Open the R Project file `ShinyValidator.Rproj`. Then open `app.R` and click **Run App**.
 
-![](images/step_2.2.png)
+![](README_images/step_2.2.png)
 
 Note that the exact location of these buttons may differ depending on your console setup. You may be prompted to install any required packages that are not already installed.
 
