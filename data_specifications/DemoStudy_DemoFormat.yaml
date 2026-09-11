@@ -1,0 +1,190 @@
+
+#----------------
+# Demo Specification
+#----------------
+
+- field: study_ID
+  description: study identifier
+  type: string
+  options: []
+  format: open
+  pattern: .na
+  lowerlimit: .na
+  upperlimit: .na
+  allow_decimals: .na
+  min_decimals: .na
+  max_decimals: .na
+  required: yes
+  NA_allowed: no
+  error_message: ''
+
+- field: condition
+  description: experimental condition
+  type: options
+  options:
+  - control
+  - experimental
+  - familiar
+  format: open
+  pattern: .na
+  lowerlimit: .na
+  upperlimit: .na
+  allow_decimals: .na
+  min_decimals: .na
+  max_decimals: .na
+  required: yes
+  NA_allowed: no
+  error_message: ''
+
+- field: age
+  description: participant age in years
+  type: numeric
+  options: []
+  format: restricted
+  pattern: .na
+  lowerlimit: 3
+  upperlimit: 5
+  allow_decimals: 'no'
+  min_decimals: .na
+  max_decimals: .na
+  required: yes
+  NA_allowed: no
+  error_message: ''
+
+- field: reaction_time
+  description: reaction time in milliseconds
+  type: numeric
+  options: []
+  format: restricted
+  pattern: .na
+  lowerlimit: 300
+  upperlimit: 10000
+  allow_decimals: 'yes'
+  min_decimals: 2.0
+  max_decimals: 2.0
+  required: yes
+  NA_allowed: no
+  error_message: ''
+
+- field: participant_initials
+  description: participant initials
+  type: string
+  options: []
+  format: uppercase
+  pattern: .na
+  lowerlimit: 2
+  upperlimit: 3
+  allow_decimals: .na
+  min_decimals: .na
+  max_decimals: .na
+  required: yes
+  NA_allowed: no
+  error_message: ''
+
+- field: participant_code
+  description: participant code consisting of P followed by four digits
+  type: string
+  options: []
+  format: regex
+  pattern: ^P[0-9]{4}$
+  lowerlimit: .na
+  upperlimit: .na
+  allow_decimals: .na
+  min_decimals: .na
+  max_decimals: .na
+  required: yes
+  NA_allowed: no
+  error_message: ''
+
+- field: comments
+  description: optional participant notes
+  type: string
+  options: []
+  format: open
+  pattern: .na
+  lowerlimit: .na
+  upperlimit: .na
+  allow_decimals: .na
+  min_decimals: .na
+  max_decimals: .na
+  required: yes
+  NA_allowed: yes
+  error_message: ''
+
+- field: trial_number
+  description: trial number
+  type: numeric
+  options: []
+  format: restricted
+  pattern: .na
+  lowerlimit: 1
+  upperlimit: 20
+  allow_decimals: 'no'
+  min_decimals: .na
+  max_decimals: .na
+  required: yes
+  NA_allowed: no
+  error_message: ''
+
+- field: response
+  description: participant response
+  type: options
+  options:
+  - yes
+  - no
+  - unknown
+  format: open
+  pattern: .na
+  lowerlimit: .na
+  upperlimit: .na
+  allow_decimals: .na
+  min_decimals: .na
+  max_decimals: .na
+  required: yes
+  NA_allowed: no
+  error_message: ''
+
+- field: session_label
+  description: session identifier between 5 and 10 characters
+  type: string
+  options: []
+  format: restricted
+  pattern: .na
+  lowerlimit: 5
+  upperlimit: 10
+  allow_decimals: .na
+  min_decimals: .na
+  max_decimals: .na
+  required: yes
+  NA_allowed: no
+  error_message: ''
+
+- field: researcher_code
+  description: researcher code consisting of two uppercase letters followed by two digits
+  type: string
+  options: []
+  format: regex
+  pattern: ^[A-Z]{2}[0-9]{2}$
+  lowerlimit: .na
+  upperlimit: .na
+  allow_decimals: .na
+  min_decimals: .na
+  max_decimals: .na
+  required: yes
+  NA_allowed: no
+  error_message: ''
+
+- field: notes
+  description: optional researcher notes
+  type: string
+  options: []
+  format: open
+  pattern: .na
+  lowerlimit: .na
+  upperlimit: .na
+  allow_decimals: .na
+  min_decimals: .na
+  max_decimals: .na
+  required: yes
+  NA_allowed: yes
+  error_message: Please check the researcher notes field.
