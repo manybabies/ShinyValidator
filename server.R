@@ -3,15 +3,24 @@ library(tidyverse)
 library(yaml)
 library(DT)
 
+
+# Load shared functions ------------------------------------------------------------------
+
 source("common.R")
 source("ErrorHandler.R")
 
-# Load configuration
+
+# Load default configuration -------------------------------------------------------------
+
 config <- yaml::read_yaml("configuration/config_Default.yaml")
+
+
+# Server --------------------------------------------------------------------------------
 
 server <- function(input, output, session) {
   
-  # Selected configuration
+  
+  # Selected configuration ---------------------------------------------------------------
   
   selected_config <- reactive({
     
@@ -25,7 +34,8 @@ server <- function(input, output, session) {
     )
   })
   
-  # Selected configuration name
+  
+  # Selected configuration name ----------------------------------------------------------
   
   selected_configuration_name <- reactive({
     
@@ -40,7 +50,8 @@ server <- function(input, output, session) {
     )
   })
   
-  # Available specifications
+  
+  # Available specifications -------------------------------------------------------------
   
   available_specifications <- reactive({
     
@@ -59,7 +70,8 @@ server <- function(input, output, session) {
     )
   })
   
-  # Specification information
+  
+  # Specification information -----------------------------------------------------------
   
   specification_info <- reactive({
     
@@ -82,7 +94,8 @@ server <- function(input, output, session) {
     )
   })
   
-  # Study selection
+  
+  # Study selection ----------------------------------------------------------------------
   
   output$study_selection <- renderUI({
     
@@ -112,7 +125,8 @@ server <- function(input, output, session) {
     }
   })
   
-  # Reset study when configuration changes
+  
+  # Reset study when configuration changes ----------------------------------------------
   
   observeEvent(
     selected_configuration_name(),
@@ -135,7 +149,8 @@ server <- function(input, output, session) {
     ignoreInit = FALSE
   )
   
-  # Application title
+  
+  # Application title --------------------------------------------------------------------
   
   output$app_title <- renderUI({
     
@@ -144,7 +159,8 @@ server <- function(input, output, session) {
     titlePanel(current_config$app_title)
   })
   
-  # Specification message
+  
+  # Specification message ----------------------------------------------------------------
   
   output$specification_message <- renderUI({
     
@@ -155,7 +171,8 @@ server <- function(input, output, session) {
     )
   })
   
-  # Configuration Creation
+  
+  # Configuration Creation ---------------------------------------------------------------
   
   output$configuration_creation_content <- renderUI({
     
@@ -192,7 +209,8 @@ server <- function(input, output, session) {
         "The fields below are pre-populated with the current configuration."
       ),
       
-      # Application title
+      
+      # Application title ----------------------------------------------------------------
       
       textInput(
         "config_app_title",
@@ -200,7 +218,8 @@ server <- function(input, output, session) {
         value = current_config$app_title
       ),
       
-      # Welcome message
+      
+      # Welcome message ------------------------------------------------------------------
       
       checkboxInput(
         "enable_welcome_message",
@@ -226,7 +245,8 @@ server <- function(input, output, session) {
         )
       ),
       
-      # Secondary message
+      
+      # Secondary message ----------------------------------------------------------------
       
       checkboxInput(
         "enable_secondary_message",
@@ -254,11 +274,13 @@ server <- function(input, output, session) {
       
       br(),
       
-      # Instruction Sets and Links
+      
+      # Instruction Sets and Links -------------------------------------------------------
       
       fluidRow(
         
-        # Instruction Set 1
+        
+        # Instruction Set 1 ----------------------------------------------------------------
         
         column(
           width = 4,
@@ -299,7 +321,8 @@ server <- function(input, output, session) {
           )
         ),
         
-        # Instruction Set 2
+        
+        # Instruction Set 2 ----------------------------------------------------------------
         
         column(
           width = 4,
@@ -340,7 +363,8 @@ server <- function(input, output, session) {
           )
         ),
         
-        # Links
+        
+        # Links ---------------------------------------------------------------------------
         
         column(
           width = 4,
@@ -385,7 +409,8 @@ server <- function(input, output, session) {
     )
   })
   
-  # Validation Results configuration content
+  
+  # Validation Results configuration content -------------------------------------------
   
   output$validation_config_content <- renderUI({
     
@@ -435,7 +460,8 @@ server <- function(input, output, session) {
       
       fluidRow(
         
-        # Instruction Sets
+        
+        # Instruction Sets ----------------------------------------------------------------
         
         column(
           width = 8,
@@ -469,7 +495,8 @@ server <- function(input, output, session) {
           }
         ),
         
-        # Links
+        
+        # Links ---------------------------------------------------------------------------
         
         column(
           width = 4,
@@ -500,7 +527,8 @@ server <- function(input, output, session) {
     )
   })
   
-  # Study format
+  
+  # Study format -------------------------------------------------------------------------
   
   output$study_format <- renderUI({
     
@@ -519,7 +547,8 @@ server <- function(input, output, session) {
     )
   })
   
-  # Reset format when study changes
+  
+  # Reset format when study changes -----------------------------------------------------
   
   observeEvent(
     input$study,
@@ -545,7 +574,8 @@ server <- function(input, output, session) {
     ignoreInit = FALSE
   )
   
-  # Specification
+  
+  # Specification ------------------------------------------------------------------------
   
   output$specification <- renderUI({
     
@@ -611,7 +641,8 @@ server <- function(input, output, session) {
           na_text
         )
         
-        # Options
+        
+        # Options -------------------------------------------------------------------------
         
         if (field$type == "options") {
           
@@ -632,7 +663,8 @@ server <- function(input, output, session) {
           )
         }
         
-        # Numeric
+        
+        # Numeric -------------------------------------------------------------------------
         
         if (field$type == "numeric") {
           
@@ -693,7 +725,8 @@ server <- function(input, output, session) {
           }
         }
         
-        # String
+        
+        # String --------------------------------------------------------------------------
         
         if (field$type == "string") {
           
@@ -775,7 +808,8 @@ server <- function(input, output, session) {
     )
   })
   
-  # Validation errors
+  
+  # Validation errors --------------------------------------------------------------------
   
   output$errors_by_column <- renderUI({
     
@@ -819,13 +853,15 @@ server <- function(input, output, session) {
       )
     }
     
-    # Errors by row
+    
+    # Errors by row -----------------------------------------------------------------------
     
     if (identical(input$error_view, "row")) {
       
       row_errors <- list()
       
-      # Missing required columns
+      
+      # Missing required columns ----------------------------------------------------------
       
       for (issue in issues) {
         
@@ -856,7 +892,8 @@ server <- function(input, output, session) {
         }
       }
       
-      # Collect cell errors
+      
+      # Collect cell errors --------------------------------------------------------------
       
       cell_errors <- list()
       
@@ -894,7 +931,8 @@ server <- function(input, output, session) {
         }
       }
       
-      # Group errors by row
+      
+      # Group errors by row ----------------------------------------------------------------
       
       if (length(cell_errors) > 0) {
         
@@ -962,7 +1000,8 @@ server <- function(input, output, session) {
       )
     }
     
-    # Errors by column
+    
+    # Errors by column --------------------------------------------------------------------
     
     tagList(
       h4("Errors by column"),
@@ -1026,7 +1065,8 @@ server <- function(input, output, session) {
     )
   })
   
-  # Configuration Creation — Instruction Set 1
+  
+  # Configuration Creation — Instruction Set 1 ------------------------------------------
   
   output$instruction_fields <- renderUI({
     
@@ -1065,7 +1105,8 @@ server <- function(input, output, session) {
     })
   })
   
-  # Configuration Creation — Instruction Set 2
+  
+  # Configuration Creation — Instruction Set 2 ------------------------------------------
   
   output$upload_instruction_fields <- renderUI({
     
@@ -1104,7 +1145,8 @@ server <- function(input, output, session) {
     })
   })
   
-  # Configuration Creation — Links
+  
+  # Configuration Creation — Links ------------------------------------------------------
   
   output$link_fields <- renderUI({
     
@@ -1165,7 +1207,8 @@ server <- function(input, output, session) {
     })
   })
   
-  # User-created specification
+  
+  # User-created specification -----------------------------------------------------------
   
   userData <- reactive({
     
@@ -1356,7 +1399,8 @@ server <- function(input, output, session) {
     data_list
   })
   
-  # Download specification
+  
+  # Download specification ---------------------------------------------------------------
   
   output$downloadSetup <- downloadHandler(
     
@@ -1393,7 +1437,8 @@ server <- function(input, output, session) {
     }
   )
   
-  # Download configuration
+  
+  # Download configuration ---------------------------------------------------------------
   
   output$downloadConfiguration <- downloadHandler(
     
@@ -1405,7 +1450,8 @@ server <- function(input, output, session) {
     
     content = function(file) {
       
-      # Welcome message
+      
+      # Welcome message ------------------------------------------------------------------
       
       welcome_message <- NULL
       
@@ -1421,7 +1467,8 @@ server <- function(input, output, session) {
         }
       }
       
-      # Secondary message
+      
+      # Secondary message ----------------------------------------------------------------
       
       secondary_message <- NULL
       
@@ -1437,7 +1484,8 @@ server <- function(input, output, session) {
         }
       }
       
-      # Instruction Set 1
+      
+      # Instruction Set 1 ----------------------------------------------------------------
       
       instructions <- character(0)
       
@@ -1471,7 +1519,8 @@ server <- function(input, output, session) {
         }
       }
       
-      # Links
+      
+      # Links ---------------------------------------------------------------------------
       
       links <- list()
       
@@ -1508,7 +1557,8 @@ server <- function(input, output, session) {
         }
       }
       
-      # Instruction Set 2
+      
+      # Instruction Set 2 ----------------------------------------------------------------
       
       upload_instructions <- character(0)
       
@@ -1542,7 +1592,8 @@ server <- function(input, output, session) {
         }
       }
       
-      # Instruction set names
+      
+      # Instruction set names ------------------------------------------------------------
       
       instruction_set_1_name <- input$config_instruction_set_1_name
       
@@ -1562,7 +1613,8 @@ server <- function(input, output, session) {
         instruction_set_2_name <- "Instruction Set 2"
       }
       
-      # Create configuration
+      
+      # Create configuration -------------------------------------------------------------
       
       configuration <- list(
         app_title = input$config_app_title,
@@ -1576,7 +1628,8 @@ server <- function(input, output, session) {
         specification_message = config$specification_message
       )
       
-      # Write YAML
+      
+      # Write YAML -----------------------------------------------------------------------
       
       yaml::write_yaml(
         configuration,
@@ -1585,7 +1638,8 @@ server <- function(input, output, session) {
     }
   )
   
-  # Create variable tabs
+  
+  # Create variable tabs -----------------------------------------------------------------
   
   createVariableTab <- function(i) {
     
@@ -1659,7 +1713,8 @@ server <- function(input, output, session) {
         column(
           width = 4,
           
-          # Numeric
+          
+          # Numeric -----------------------------------------------------------------------
           
           conditionalPanel(
             condition = paste0(
@@ -1749,7 +1804,8 @@ server <- function(input, output, session) {
             )
           ),
           
-          # Options
+          
+          # Options -----------------------------------------------------------------------
           
           conditionalPanel(
             condition = paste0(
@@ -1771,7 +1827,8 @@ server <- function(input, output, session) {
             )
           ),
           
-          # String
+          
+          # String ------------------------------------------------------------------------
           
           conditionalPanel(
             condition = paste0(
@@ -1895,7 +1952,8 @@ server <- function(input, output, session) {
     )
   }
   
-  # Manage variable tabs
+  
+  # Manage variable tabs -----------------------------------------------------------------
   
   current_num_vars <- reactiveVal(0)
   
@@ -1937,7 +1995,8 @@ server <- function(input, output, session) {
     current_num_vars(new_num_vars)
   })
   
-  # Generate option inputs
+  
+  # Generate option inputs ---------------------------------------------------------------
   
   observe({
     
@@ -1973,7 +2032,8 @@ server <- function(input, output, session) {
     }
   })
   
-  # Validate example inputs
+  
+  # Validate example inputs --------------------------------------------------------------
   
   observe({
     
@@ -2030,7 +2090,8 @@ server <- function(input, output, session) {
     }
   })
   
-  # Download setup button
+  
+  # Download setup button ---------------------------------------------------------------
   
   output$downloadSetupButton <- renderUI({
     
@@ -2102,7 +2163,8 @@ server <- function(input, output, session) {
     }
   })
   
-  # Download highlighted dataset
+  
+  # Download highlighted dataset --------------------------------------------------------
   
   output$downloadHighlighted <- downloadHandler(
     
@@ -2214,7 +2276,8 @@ server <- function(input, output, session) {
     }
   )
   
-  # Validation preview
+  
+  # Validation preview ------------------------------------------------------------------
   
   output$validation_preview <- DT::renderDT({
     
@@ -2289,7 +2352,8 @@ server <- function(input, output, session) {
       }
     }
     
-    # Create JavaScript for cell highlighting
+    
+    # Create JavaScript for cell highlighting -------------------------------------------
     
     highlight_js <- if (length(invalid_cells) > 0) {
       
@@ -2318,7 +2382,8 @@ server <- function(input, output, session) {
       )
     }
     
-    # Create table
+    
+    # Create table ------------------------------------------------------------------------
     
     table <- DT::datatable(
       df,
