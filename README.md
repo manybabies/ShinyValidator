@@ -673,7 +673,7 @@ config_ManyBabies.yaml
 a corresponding specification might be:
 
 ```text
-ManyBabies_FishSpeed_RawData.yaml
+ManyBabies_MB1_subjects.yaml
 ```
 
 The configuration name is extracted from the configuration filename and used by `server.R` to identify the appropriate specifications.
@@ -858,7 +858,7 @@ The configuration name is used to distinguish specifications belonging to differ
 For example:
 
 ```text
-ManyBabies_FishSpeed_RawData.yaml
+ManyBabies_MB1_subjects.yaml
 ```
 
 can be interpreted as:
@@ -866,8 +866,8 @@ can be interpreted as:
 | Component     | Value        |
 | ------------- | ------------ |
 | Configuration | `ManyBabies` |
-| Study         | `FishSpeed`  |
-| Format        | `RawData`    |
+| Study         | `MB1`  |
+| Format        | `subjects`    |
 
 Adding a correctly named specification automatically makes it available to the corresponding configuration.
 
@@ -973,14 +973,7 @@ ShinyValidator/
 ├── data_specifications/
 │   ├── ManyBabies_StudyA_Format1.yaml
 │   └── ManyBabies_StudyB_Format1.yaml
-│
-├── sample_datasets/
-│   ├── valid_dataset.csv
-│   └── invalid_dataset.csv
-│
-└── README_images/
-    ├── step_2.1.png
-    └── step_2.2.png
+
 ```
 
 The most important distinction is:
