@@ -7,21 +7,25 @@ app_title: ShinyValidator Template
 welcome_message: This is where you put the welcome message!
 
 # Secondary message
-secondary_message: You can also put a secondary message here with more instructions, perhaps referencing a link with helpful links.
+secondary_message: You can also put a secondary message here with more information.
 
-# Secondary message link
-secondary_link_url: https://github.com/manybabies/ShinyValidator
-secondary_link_text: For example, link to this app's Github repo.
+# Instruction Set 1
+instruction_set_1:
+- This is the first instruction.
+- This is the second instruction.
+- This is the third instruction.
 
-# Main instructions
-instructions_before: This is where you can provide specific instructions on how to use
-instructions_emphasis: your
-instructions_after: validator.
+# Links
+links:
+- text: Example link to Google homepage
+  url: https://google.ca
+- text: Example link to ShinyValidator GitHub
+  url: https://github.com/manybabies/ShinyValidator
 
-# File upload instructions
-upload_instructions_before: Click
-upload_instructions_emphasis: Browse
-upload_instructions_after: to select the dataset you would like to validate.
+# Instruction Set 2
+instruction_set_2:
+- This is the first instruction for Instruction Set 2.
+- This is the second instruction for Instruction Set 2.
 
-# Specification tab
+# Specification message
 specification_message: This is the human-readable version of the specification you have chosen.

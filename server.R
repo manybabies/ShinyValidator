@@ -6,6 +6,8 @@ library(DT)
 source("common.R")
 source("ErrorHandler.R")
 
+# Load configuration
+config <- yaml::read_yaml("configuration/config.yaml")
 
 server <- function(input, output, session) {
   
@@ -506,6 +508,142 @@ server <- function(input, output, session) {
   })
   
   
+  # Configuration Creation — Instruction Set 1
+  
+  output$instruction_fields <- renderUI({
+    
+    req(isTRUE(input$enable_instruction_set_1))
+    
+    n <- input$num_instruction_lines
+    
+    if (is.null(n) || is.na(n) || n < 1) {
+      return(NULL)
+    }
+    
+    defaults <- if (is.null(config$instruction_set_1)) {
+      character(0)
+    } else {
+      as.character(
+        unlist(
+          config$instruction_set_1,
+          use.names = FALSE
+        )
+      )
+    }
+    
+    lapply(seq_len(n), function(i) {
+      
+      textInput(
+        paste0("config_instruction_", i),
+        paste0("Instruction ", i, ":"),
+        value = if (i <= length(defaults)) {
+          defaults[i]
+        } else {
+          ""
+        }
+      )
+    })
+  })
+  
+  
+  # Configuration Creation — Instruction Set 2
+  
+  output$upload_instruction_fields <- renderUI({
+    
+    req(isTRUE(input$enable_instruction_set_2))
+    
+    n <- input$num_upload_instruction_lines
+    
+    if (is.null(n) || is.na(n) || n < 1) {
+      return(NULL)
+    }
+    
+    defaults <- if (is.null(config$instruction_set_2)) {
+      character(0)
+    } else {
+      as.character(
+        unlist(
+          config$instruction_set_2,
+          use.names = FALSE
+        )
+      )
+    }
+    
+    lapply(seq_len(n), function(i) {
+      
+      textInput(
+        paste0("config_upload_instruction_", i),
+        paste0("Instruction ", i, ":"),
+        value = if (i <= length(defaults)) {
+          defaults[i]
+        } else {
+          ""
+        }
+      )
+    })
+  })
+  
+  
+  # Configuration Creation — Links
+  
+  output$link_fields <- renderUI({
+    
+    req(isTRUE(input$enable_links))
+    
+    n <- input$num_links
+    
+    if (is.null(n) || is.na(n) || n < 1) {
+      return(NULL)
+    }
+    
+    defaults <- if (is.null(config$links)) {
+      list()
+    } else {
+      config$links
+    }
+    
+    lapply(seq_len(n), function(i) {
+      
+      default_text <- if (
+        i <= length(defaults) &&
+        !is.null(defaults[[i]][["text"]])
+      ) {
+        as.character(defaults[[i]][["text"]])
+      } else {
+        ""
+      }
+      
+      default_url <- if (
+        i <= length(defaults) &&
+        !is.null(defaults[[i]][["url"]])
+      ) {
+        as.character(defaults[[i]][["url"]])
+      } else {
+        ""
+      }
+      
+      tagList(
+        
+        h5(paste("Link", i)),
+        
+        textInput(
+          paste0("config_link_text_", i),
+          "Link text:",
+          value = default_text
+        ),
+        
+        textInput(
+          paste0("config_link_url_", i),
+          "Hyperlink:",
+          value = default_url
+        ),
+        
+        br()
+      )
+    })
+  })
+  
+  
   ## User-created specification
   
   userData <- reactive({
@@ -732,6 +870,183 @@ server <- function(input, output, session) {
           )
         )
       })
+    }
+  )
+  
+  
+  # Download configuration
+  
+  output$downloadConfiguration <- downloadHandler(
+    
+    filename = function() {
+      "config.yaml"
+    },
+    
+    contentType = "text/yaml",
+    
+    content = function(file) {
+      
+      # Welcome message
+      
+      welcome_message <- NULL
+      
+      if (isTRUE(input$enable_welcome_message)) {
+        
+        welcome_message <- input$config_welcome_message
+        
+        if (
+          is.null(welcome_message) ||
+          !nzchar(trimws(welcome_message))
+        ) {
+          welcome_message <- NULL
+        }
+      }
+      
+      
+      # Secondary message
+      
+      secondary_message <- NULL
+      
+      if (isTRUE(input$enable_secondary_message)) {
+        
+        secondary_message <- input$config_secondary_message
+        
+        if (
+          is.null(secondary_message) ||
+          !nzchar(trimws(secondary_message))
+        ) {
+          secondary_message <- NULL
+        }
+      }
+      
+      
+      # Instruction Set 1
+      
+      instructions <- character(0)
+      
+      if (isTRUE(input$enable_instruction_set_1)) {
+        
+        n_instructions <- input$num_instruction_lines
+        
+        if (
+          !is.null(n_instructions) &&
+          !is.na(n_instructions) &&
+          n_instructions > 0
+        ) {
+          
+          instructions <- vapply(
+            seq_len(n_instructions),
+            function(i) {
+              
+              value <- input[[paste0(
+                "config_instruction_",
+                i
+              )]]
+              
+              if (is.null(value)) {
+                ""
+              } else {
+                value
+              }
+            },
+            character(1)
+          )
+        }
+      }
+      
+      
+      # Links
+      
+      links <- list()
+      
+      if (isTRUE(input$enable_links)) {
+        
+        n_links <- input$num_links
+        
+        if (
+          !is.null(n_links) &&
+          !is.na(n_links) &&
+          n_links > 0
+        ) {
+          
+          links <- lapply(
+            seq_len(n_links),
+            function(i) {
+              
+              text <- input[[paste0(
+                "config_link_text_",
+                i
+              )]]
+              
+              url <- input[[paste0(
+                "config_link_url_",
+                i
+              )]]
+              
+              list(
+                text = if (is.null(text)) "" else text,
+                url = if (is.null(url)) "" else url
+              )
+            }
+          )
+        }
+      }
+      
+      
+      # Instruction Set 2
+      
+      upload_instructions <- character(0)
+      
+      if (isTRUE(input$enable_instruction_set_2)) {
+        
+        n_upload_instructions <- input$num_upload_instruction_lines
+        
+        if (
+          !is.null(n_upload_instructions) &&
+          !is.na(n_upload_instructions) &&
+          n_upload_instructions > 0
+        ) {
+          
+          upload_instructions <- vapply(
+            seq_len(n_upload_instructions),
+            function(i) {
+              
+              value <- input[[paste0(
+                "config_upload_instruction_",
+                i
+              )]]
+              
+              if (is.null(value)) {
+                ""
+              } else {
+                value
+              }
+            },
+            character(1)
+          )
+        }
+      }
+      
+      
+      # Create configuration
+      
+      configuration <- list(
+        app_title = input$config_app_title,
+        welcome_message = welcome_message,
+        secondary_message = secondary_message,
+        instruction_set_1 = instructions,
+        links = links,
+        instruction_set_2 = upload_instructions,
+        specification_message = config$specification_message
+      )
+      
+      
+      # Write YAML
+      
+      yaml::write_yaml(
+        configuration,
+        file
+      )
     }
   )
   
