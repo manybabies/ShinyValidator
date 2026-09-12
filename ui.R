@@ -7,7 +7,7 @@ library(yaml)
 source("common.R")
 
 # Load default configuration
-config <- yaml::read_yaml("configuration/config_default.yaml")
+config <- yaml::read_yaml("configuration/config_Default.yaml")
 
 # Available configurations
 configuration_files <- list.files(
@@ -227,7 +227,6 @@ ui <- fluidPage(
       #downloadConfiguration:hover,
       #downloadConfiguration:focus {
         background-color: #382c55 !important;
-        background-image: none !important;
         border-color: #382c55 !important;
         color: #ffffff !important;
         transform: translateY(-1px);
@@ -610,9 +609,11 @@ ui <- fluidPage(
     )
   ),
   
-  # Update variable tab names
+  # Update variable tab names and instruction set headings
   tags$script(HTML("
     document.addEventListener('input', function(event) {
+      
+      # Variable tab names
       
       if (event.target.id.startsWith('field_name_')) {
         
@@ -625,6 +626,44 @@ ui <- fluidPage(
             label.textContent = 'Variable ' + number;
           } else {
             label.textContent = event.target.value;
+          }
+          
+        }
+      }
+      
+      # Instruction Set 1 heading
+      
+      if (event.target.id === 'config_instruction_set_1_name') {
+        
+        var heading = document.getElementById(
+          'instruction_set_1_creation_heading'
+        );
+        
+        if (heading) {
+          
+          if (event.target.value.trim() === '') {
+            heading.textContent = 'Instruction Set 1';
+          } else {
+            heading.textContent = event.target.value;
+          }
+          
+        }
+      }
+      
+      # Instruction Set 2 heading
+      
+      if (event.target.id === 'config_instruction_set_2_name') {
+        
+        var heading = document.getElementById(
+          'instruction_set_2_creation_heading'
+        );
+        
+        if (heading) {
+          
+          if (event.target.value.trim() === '') {
+            heading.textContent = 'Instruction Set 2';
+          } else {
+            heading.textContent = event.target.value;
           }
           
         }
