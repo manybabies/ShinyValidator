@@ -7,7 +7,7 @@ source("common.R")
 source("ErrorHandler.R")
 
 # Load configuration
-config <- yaml::read_yaml("configuration/config_default.yaml")
+config <- yaml::read_yaml("configuration/config_Default.yaml")
 
 server <- function(input, output, session) {
   
@@ -112,7 +112,7 @@ server <- function(input, output, session) {
     }
   })
   
-  ## Reset study when configuration changes
+  # Reset study when configuration changes
   
   observeEvent(
     selected_configuration_name(),
@@ -161,6 +161,26 @@ server <- function(input, output, session) {
     
     current_config <- selected_config()
     
+    # Get instruction set names
+    
+    instruction_set_1_name <- if (
+      !is.null(current_config$instruction_set_1_name) &&
+      nzchar(current_config$instruction_set_1_name)
+    ) {
+      current_config$instruction_set_1_name
+    } else {
+      "Instruction Set 1"
+    }
+    
+    instruction_set_2_name <- if (
+      !is.null(current_config$instruction_set_2_name) &&
+      nzchar(current_config$instruction_set_2_name)
+    ) {
+      current_config$instruction_set_2_name
+    } else {
+      "Instruction Set 2"
+    }
+    
     tagList(
       
       h3("Configuration Creation"),
@@ -172,7 +192,6 @@ server <- function(input, output, session) {
         "The fields below are pre-populated with the current configuration."
       ),
       
-      
       # Application title
       
       textInput(
@@ -180,7 +199,6 @@ server <- function(input, output, session) {
         "Application title:",
         value = current_config$app_title
       ),
-      
       
       # Welcome message
       
@@ -208,7 +226,6 @@ server <- function(input, output, session) {
         )
       ),
       
-      
       # Secondary message
       
       checkboxInput(
@@ -235,9 +252,7 @@ server <- function(input, output, session) {
         )
       ),
       
-      
       br(),
-      
       
       # Instruction Sets and Links
       
@@ -250,9 +265,15 @@ server <- function(input, output, session) {
           
           h4("Instruction Set 1"),
           
+          textInput(
+            "config_instruction_set_1_name",
+            "Section name:",
+            value = instruction_set_1_name
+          ),
+          
           checkboxInput(
             "enable_instruction_set_1",
-            "Enable Instruction Set 1",
+            "Enable instruction set",
             value = !is.null(current_config$instruction_set_1) &&
               length(current_config$instruction_set_1) > 0
           ),
@@ -278,7 +299,6 @@ server <- function(input, output, session) {
           )
         ),
         
-        
         # Instruction Set 2
         
         column(
@@ -286,9 +306,15 @@ server <- function(input, output, session) {
           
           h4("Instruction Set 2"),
           
+          textInput(
+            "config_instruction_set_2_name",
+            "Section name:",
+            value = instruction_set_2_name
+          ),
+          
           checkboxInput(
             "enable_instruction_set_2",
-            "Enable Instruction Set 2",
+            "Enable instruction set",
             value = !is.null(current_config$instruction_set_2) &&
               length(current_config$instruction_set_2) > 0
           ),
@@ -313,7 +339,6 @@ server <- function(input, output, session) {
             uiOutput("upload_instruction_fields")
           )
         ),
-        
         
         # Links
         
@@ -351,7 +376,6 @@ server <- function(input, output, session) {
         )
       ),
       
-      
       br(),
       
       downloadButton(
@@ -366,6 +390,26 @@ server <- function(input, output, session) {
   output$validation_config_content <- renderUI({
     
     current_config <- selected_config()
+    
+    # Get instruction set names
+    
+    instruction_set_1_name <- if (
+      !is.null(current_config$instruction_set_1_name) &&
+      nzchar(current_config$instruction_set_1_name)
+    ) {
+      current_config$instruction_set_1_name
+    } else {
+      "Instruction Set 1"
+    }
+    
+    instruction_set_2_name <- if (
+      !is.null(current_config$instruction_set_2_name) &&
+      nzchar(current_config$instruction_set_2_name)
+    ) {
+      current_config$instruction_set_2_name
+    } else {
+      "Instruction Set 2"
+    }
     
     tagList(
       
@@ -392,6 +436,7 @@ server <- function(input, output, session) {
       fluidRow(
         
         # Instruction Sets
+        
         column(
           width = 8,
           
@@ -400,7 +445,7 @@ server <- function(input, output, session) {
             length(current_config$instruction_set_1) > 0
           ) {
             tagList(
-              h4("Instruction Set 1"),
+              h4(instruction_set_1_name),
               
               lapply(
                 current_config$instruction_set_1,
@@ -414,7 +459,7 @@ server <- function(input, output, session) {
             length(current_config$instruction_set_2) > 0
           ) {
             tagList(
-              h4("Instruction Set 2"),
+              h4(instruction_set_2_name),
               
               lapply(
                 current_config$instruction_set_2,
@@ -425,6 +470,7 @@ server <- function(input, output, session) {
         ),
         
         # Links
+        
         column(
           width = 4,
           
@@ -454,7 +500,7 @@ server <- function(input, output, session) {
     )
   })
   
-  ## Study format
+  # Study format
   
   output$study_format <- renderUI({
     
@@ -473,7 +519,7 @@ server <- function(input, output, session) {
     )
   })
   
-  ## Reset format when study changes
+  # Reset format when study changes
   
   observeEvent(
     input$study,
@@ -499,7 +545,7 @@ server <- function(input, output, session) {
     ignoreInit = FALSE
   )
   
-  ## Specification
+  # Specification
   
   output$specification <- renderUI({
     
@@ -565,7 +611,7 @@ server <- function(input, output, session) {
           na_text
         )
         
-        ## Options
+        # Options
         
         if (field$type == "options") {
           
@@ -586,7 +632,7 @@ server <- function(input, output, session) {
           )
         }
         
-        ## Numeric
+        # Numeric
         
         if (field$type == "numeric") {
           
@@ -647,7 +693,7 @@ server <- function(input, output, session) {
           }
         }
         
-        ## String
+        # String
         
         if (field$type == "string") {
           
@@ -729,8 +775,7 @@ server <- function(input, output, session) {
     )
   })
   
-  
-  ## Validation errors
+  # Validation errors
   
   output$errors_by_column <- renderUI({
     
@@ -772,13 +817,13 @@ server <- function(input, output, session) {
       )
     }
     
-    ## Errors by row
+    # Errors by row
     
     if (identical(input$error_view, "row")) {
       
       row_errors <- list()
       
-      ## Missing required columns
+      # Missing required columns
       
       for (issue in issues) {
         
@@ -809,7 +854,7 @@ server <- function(input, output, session) {
         }
       }
       
-      ## Collect cell errors
+      # Collect cell errors
       
       cell_errors <- list()
       
@@ -847,7 +892,7 @@ server <- function(input, output, session) {
         }
       }
       
-      ## Group errors by row
+      # Group errors by row
       
       if (length(cell_errors) > 0) {
         
@@ -915,7 +960,7 @@ server <- function(input, output, session) {
       )
     }
     
-    ## Errors by column
+    # Errors by column
     
     tagList(
       h4("Errors by column"),
@@ -979,7 +1024,6 @@ server <- function(input, output, session) {
     )
   })
   
-  
   # Configuration Creation — Instruction Set 1
   
   output$instruction_fields <- renderUI({
@@ -992,12 +1036,14 @@ server <- function(input, output, session) {
       return(NULL)
     }
     
-    defaults <- if (is.null(config$instruction_set_1)) {
+    current_config <- selected_config()
+    
+    defaults <- if (is.null(current_config$instruction_set_1)) {
       character(0)
     } else {
       as.character(
         unlist(
-          config$instruction_set_1,
+          current_config$instruction_set_1,
           use.names = FALSE
         )
       )
@@ -1017,7 +1063,6 @@ server <- function(input, output, session) {
     })
   })
   
-  
   # Configuration Creation — Instruction Set 2
   
   output$upload_instruction_fields <- renderUI({
@@ -1030,12 +1075,14 @@ server <- function(input, output, session) {
       return(NULL)
     }
     
-    defaults <- if (is.null(config$instruction_set_2)) {
+    current_config <- selected_config()
+    
+    defaults <- if (is.null(current_config$instruction_set_2)) {
       character(0)
     } else {
       as.character(
         unlist(
-          config$instruction_set_2,
+          current_config$instruction_set_2,
           use.names = FALSE
         )
       )
@@ -1055,7 +1102,6 @@ server <- function(input, output, session) {
     })
   })
   
-  
   # Configuration Creation — Links
   
   output$link_fields <- renderUI({
@@ -1068,10 +1114,12 @@ server <- function(input, output, session) {
       return(NULL)
     }
     
-    defaults <- if (is.null(config$links)) {
+    current_config <- selected_config()
+    
+    defaults <- if (is.null(current_config$links)) {
       list()
     } else {
-      config$links
+      current_config$links
     }
     
     lapply(seq_len(n), function(i) {
@@ -1115,8 +1163,7 @@ server <- function(input, output, session) {
     })
   })
   
-  
-  ## User-created specification
+  # User-created specification
   
   userData <- reactive({
     
@@ -1307,8 +1354,7 @@ server <- function(input, output, session) {
     data_list
   })
   
-  
-  ## Download specification
+  # Download specification
   
   output$downloadSetup <- downloadHandler(
     
@@ -1345,7 +1391,6 @@ server <- function(input, output, session) {
     }
   )
   
-  
   # Download configuration
   
   output$downloadConfiguration <- downloadHandler(
@@ -1374,7 +1419,6 @@ server <- function(input, output, session) {
         }
       }
       
-      
       # Secondary message
       
       secondary_message <- NULL
@@ -1390,7 +1434,6 @@ server <- function(input, output, session) {
           secondary_message <- NULL
         }
       }
-      
       
       # Instruction Set 1
       
@@ -1425,7 +1468,6 @@ server <- function(input, output, session) {
           )
         }
       }
-      
       
       # Links
       
@@ -1464,7 +1506,6 @@ server <- function(input, output, session) {
         }
       }
       
-      
       # Instruction Set 2
       
       upload_instructions <- character(0)
@@ -1499,6 +1540,25 @@ server <- function(input, output, session) {
         }
       }
       
+      # Instruction set names
+      
+      instruction_set_1_name <- input$config_instruction_set_1_name
+      
+      if (
+        is.null(instruction_set_1_name) ||
+        !nzchar(trimws(instruction_set_1_name))
+      ) {
+        instruction_set_1_name <- "Instruction Set 1"
+      }
+      
+      instruction_set_2_name <- input$config_instruction_set_2_name
+      
+      if (
+        is.null(instruction_set_2_name) ||
+        !nzchar(trimws(instruction_set_2_name))
+      ) {
+        instruction_set_2_name <- "Instruction Set 2"
+      }
       
       # Create configuration
       
@@ -1506,12 +1566,13 @@ server <- function(input, output, session) {
         app_title = input$config_app_title,
         welcome_message = welcome_message,
         secondary_message = secondary_message,
+        instruction_set_1_name = instruction_set_1_name,
         instruction_set_1 = instructions,
         links = links,
+        instruction_set_2_name = instruction_set_2_name,
         instruction_set_2 = upload_instructions,
         specification_message = config$specification_message
       )
-      
       
       # Write YAML
       
@@ -1522,8 +1583,7 @@ server <- function(input, output, session) {
     }
   )
   
-  
-  ## Create variable tabs
+  # Create variable tabs
   
   createVariableTab <- function(i) {
     
@@ -1597,7 +1657,7 @@ server <- function(input, output, session) {
         column(
           width = 4,
           
-          ## Numeric
+          # Numeric
           
           conditionalPanel(
             condition = paste0(
@@ -1687,7 +1747,7 @@ server <- function(input, output, session) {
             )
           ),
           
-          ## Options
+          # Options
           
           conditionalPanel(
             condition = paste0(
@@ -1709,7 +1769,7 @@ server <- function(input, output, session) {
             )
           ),
           
-          ## String
+          # String
           
           conditionalPanel(
             condition = paste0(
@@ -1743,22 +1803,27 @@ server <- function(input, output, session) {
                 paste0("example_1_", i),
                 "Example value 1:"
               ),
+              
               textInput(
                 paste0("example_2_", i),
                 "Example value 2:"
               ),
+              
               textInput(
                 paste0("example_3_", i),
                 "Example value 3:"
               ),
+              
               textInput(
                 paste0("example_4_", i),
                 "Example value 4:"
               ),
+              
               textInput(
                 paste0("example_5_", i),
                 "Example value 5:"
               ),
+              
               helpText(
                 "Enter five examples of valid values."
               ),
@@ -1816,6 +1881,7 @@ server <- function(input, output, session) {
           width = 12,
           
           br(),
+          
           h4("Error Message"),
           
           textInput(
@@ -1827,8 +1893,7 @@ server <- function(input, output, session) {
     )
   }
   
-  
-  ## Manage variable tabs
+  # Manage variable tabs
   
   current_num_vars <- reactiveVal(0)
   
@@ -1870,8 +1935,7 @@ server <- function(input, output, session) {
     current_num_vars(new_num_vars)
   })
   
-  
-  ## Generate option inputs
+  # Generate option inputs
   
   observe({
     
@@ -1896,6 +1960,7 @@ server <- function(input, output, session) {
           }
           
           lapply(1:n_options, function(k) {
+            
             textInput(
               paste0("option_", k, "_", j),
               paste0("Option ", k, ":")
@@ -1906,8 +1971,7 @@ server <- function(input, output, session) {
     }
   })
   
-  
-  ## Validate example inputs
+  # Validate example inputs
   
   observe({
     
@@ -1923,7 +1987,10 @@ server <- function(input, output, session) {
           
           output[[paste0("example_validation_", j)]] <- renderUI({
             
-            validation <- input[[paste0("string_validation_", j)]]
+            validation <- input[[paste0(
+              "string_validation_",
+              j
+            )]]
             
             if (
               is.null(validation) ||
@@ -1961,8 +2028,7 @@ server <- function(input, output, session) {
     }
   })
   
-  
-  ## Download setup button
+  # Download setup button
   
   output$downloadSetupButton <- renderUI({
     
@@ -2016,6 +2082,7 @@ server <- function(input, output, session) {
     } else {
       
       tagList(
+        
         tags$button(
           type = "button",
           class = "btn btn-default disabled",
@@ -2033,8 +2100,7 @@ server <- function(input, output, session) {
     }
   })
   
-  
-  ## Download highlighted dataset
+  # Download highlighted dataset
   
   output$downloadHighlighted <- downloadHandler(
     
@@ -2144,8 +2210,7 @@ server <- function(input, output, session) {
     }
   )
   
-  
-  ## Validation preview
+  # Validation preview
   
   output$validation_preview <- DT::renderDT({
     
@@ -2185,7 +2250,7 @@ server <- function(input, output, session) {
       rownames = FALSE
     )
     
-    ## Highlight invalid cells
+    # Highlight invalid cells
     
     invalid_cells <- list()
     
@@ -2218,7 +2283,7 @@ server <- function(input, output, session) {
       }
     }
     
-    ## Create JavaScript for cell highlighting
+    # Create JavaScript for cell highlighting
     
     highlight_js <- if (length(invalid_cells) > 0) {
       
@@ -2247,7 +2312,7 @@ server <- function(input, output, session) {
       )
     }
     
-    ## Create table
+    # Create table
     
     table <- DT::datatable(
       df,
