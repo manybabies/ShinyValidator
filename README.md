@@ -2,16 +2,18 @@
 
 ShinyValidator is a customizable tool for checking research datasets against predefined data specifications. Upload a CSV to identify common data-entry errors, such as missing columns, invalid values, and formatting issues, and download a highlighted Excel file to help locate and correct them.
 
-ShinyValidator is designed as a template that can be adapted to the requirements of your own project. Importantly, this tool was designed to *minimize the need to interface with R*, such that users with minimal R knowledge can nonetheless adapt the tool with ease.
+ShinyValidator is designed as a template that can be adapted to the requirements of your own project. Importantly, the tool was designed to *minimize the need to interface with R*, such that users with minimal R knowledge can nonetheless adapt the validator with ease.
 
-Fork or download this repository to customize for your project needs, and use as an app locally or deploy via the `rsconnect` package. You can find a live version of this template [here](https://manybabies.shinyapps.io/shinyvalidator/).
+Fork or download this repository to customize it for your project, and use it as an app locally or deploy it using the `rsconnect` package.
 
-## Components of this repo
+You can find a live version of this template [here](https://manybabies.shinyapps.io/shinyvalidator/).
+
+## Components of this repository
 
 This documentation is divided into three sections:
 
-1. **Primary Functions** — how to use the validator.
-2. **Adapting the Validator** — how to customize the validator for your project.
+1. **Primary Functions** — how to use the validator and create specifications/configurations.
+2. **Adapting the Validator** — how to customize the validator for your own project.
 3. **Back-end Developer Documentation** — how the validator works and how to modify its code.
 
 If you are simply creating a validator for your own project, you only need **Sections 1 and 2**.
@@ -19,6 +21,20 @@ If you are simply creating a validator for your own project, you only need **Sec
 ---
 
 # 1. Primary Functions
+
+The validator contains four main functions, divided into two categories:
+
+### Validator Functions
+
+* **Validation Results** — validate a dataset and identify errors.
+* **Specification Details** — view the requirements of the selected data specification.
+
+### Creation Functions
+
+* **Specification Creation** — create a data specification without manually writing YAML.
+* **Configuration Creation** — customize the validator's user-facing content and settings without manually editing configuration YAML.
+
+---
 
 <details>
 <summary><strong>Requirements</strong></summary>
@@ -42,19 +58,49 @@ If you want to deploy the validator to `shinyapps.io`, you will also need `rscon
 </details>
 
 <details>
-<summary><strong>Using the validator</strong></summary>
+<summary><strong>Using the Validation Results function</strong></summary>
 
-The basic version of the validator is straightforward to use:
+The **Validation Results** function is the primary way to validate a dataset.
 
-1. **Select a study** from the *Study* drop-down menu.
+1. **Select a configuration** from the *Configuration* drop-down menu.
 
-2. **Select a format** from the *Study Format* drop-down menu.
+2. **Select a study** from the *Study* drop-down menu.
 
-3. **Upload your dataset** by clicking *Browse* and selecting the `.csv` file you want to validate.
+3. **Select a format** from the *Study Format* drop-down menu.
 
-4. **Review the validation results.** The validator will indicate whether your dataset is valid. If errors are found, you can choose to view them by **column** or **row**.
+4. **Upload your dataset** by clicking *Browse* and selecting the `.csv` file you want to validate.
 
-5. **Download a highlighted file** by clicking *Download Highlighted File*. This produces an Excel file with invalid cells highlighted and an **Error Log** describing the detected errors.
+5. **Review the validation results.** The validator will indicate whether your dataset is valid.
+
+6. If errors are found, use the **View errors by** options to display errors by:
+
+   * column; or
+   * row.
+
+7. **Download a highlighted file** by clicking *Download Highlighted File*. This produces an Excel file containing the original dataset with invalid cells highlighted, along with an **Error Log** describing the detected errors.
+
+The available studies and formats depend on the specifications associated with the selected configuration.
+
+</details>
+
+<details>
+<summary><strong>Using the Specification Details function</strong></summary>
+
+The **Specification Details** function displays a human-readable description of the selected data specification.
+
+This allows users to check the requirements being applied to their dataset without opening the underlying YAML file.
+
+The specification includes information such as:
+
+* required variables;
+* variable descriptions;
+* field types;
+* allowed values;
+* numeric restrictions;
+* string restrictions; and
+* other validation requirements.
+
+The explanatory text displayed in this section can be customized through the selected configuration.
 
 </details>
 
@@ -74,16 +120,73 @@ The specific checks performed depend on the data specification.
 </details>
 
 <details>
+<summary><strong>Using Specification Creation</strong></summary>
+
+The **Specification Creation** function allows users to create a YAML data specification without manually writing YAML code.
+
+Start by entering the number of variables required in the specification. The validator will then generate an interface for defining each variable.
+
+For each variable, you can specify:
+
+* variable name;
+* description;
+* field type;
+* whether the field is required;
+* whether `NA` values are allowed;
+* allowed options;
+* numeric restrictions;
+* string restrictions; and
+* examples for generating regular-expression restrictions.
+
+Once the specification is complete, click **Download Setup** to download the resulting YAML file.
+
+> **Important:** You can change the number of variables at any time, but decreasing the number of variables will erase some of your progress. For example, reducing the number of variables from 10 to 9 will permanently remove the settings for variable 10.
+
+See **Section 2.5: Creating your data specification** for more information about the available field types and specification workflow.
+
+</details>
+
+<details>
+<summary><strong>Using Configuration Creation</strong></summary>
+
+The **Configuration Creation** function allows you to customize the validator without manually editing the configuration YAML file.
+
+Configuration Creation can be used to define:
+
+* the application title;
+* the welcome message;
+* a secondary message;
+* the name and contents of **Instruction Set 1**;
+* the name and contents of **Instruction Set 2**;
+* links displayed in the validator; and
+* the specification message.
+
+The names of the instruction sets are customizable. For example, instead of calling the first section *Instruction Set 1*, a project could call it **Getting Started** or **Before You Begin**.
+
+Similarly, the second section could be renamed to something such as **Upload Instructions** or **Data Submission Instructions**.
+
+Once the configuration is complete, click **Download Configuration** to download the YAML configuration file.
+
+The downloaded configuration can then be placed in the `configuration` folder and selected from the application's **Configuration** drop-down menu.
+
+This allows the same ShinyValidator codebase to support multiple projects or studies with different user-facing instructions and settings.
+
+</details>
+
+<details>
 <summary><strong>Creating your own validator</strong></summary>
 
-ShinyValidator is designed as a template. You can create a validator for your own project by:
+ShinyValidator is designed as a template. A typical workflow for creating a validator for your own project is:
 
-1. Customizing the instructions and other user-facing content.
-2. Creating a data specification using the **Specification Creation** tab.
-3. Adding the resulting specification to the validator.
-4. Testing the validator with your own datasets.
+1. Download or fork the repository.
+2. Create or customize a configuration.
+3. Create one or more data specifications.
+4. Add your specifications to the `data_specifications` folder.
+5. Test the validator using example datasets.
+6. Customize the appearance or underlying code if needed.
+7. Run the validator locally or deploy it online.
 
-> **Try it out:** Launch the validator and try out the built-in Demo specification. In your extracted RProject, there is a "sample_datasets" folder containing a valid and an invalid dataset. Run those through the validator to see what the output looks like before moving on.
+> **Try it out:** Launch the validator and try out the built-in Demo specification. The extracted R Project contains a `sample_datasets` folder with valid and invalid datasets. Run these through the validator to see what the output looks like before creating your own specifications.
 
 See **Section 2: Adapting the Validator** for step-by-step instructions.
 
@@ -93,7 +196,11 @@ See **Section 2: Adapting the Validator** for step-by-step instructions.
 
 # 2. Adapting the Validator
 
-This section provides a step-by-step guide for adapting the validator template for your own project. Before proceeding with this section, please make sure you have everything in the Requirements section above installed.
+This section provides a step-by-step guide for adapting the validator template for your own project.
+
+Before proceeding, please make sure you have everything in the **Requirements** section above installed.
+
+---
 
 <details>
 <summary><strong>2.1 Downloading the validator</strong></summary>
@@ -115,52 +222,122 @@ Open the R Project file `ShinyValidator.Rproj`. Then open `app.R` and click **Ru
 
 ![](README_images/step_2.2.png)
 
-Note that the exact location of these buttons may differ depending on your console setup. You may be prompted to install any required packages that are not already installed.
+Note that the exact location of these buttons may differ depending on your RStudio setup. You may be prompted to install any required packages that are not already installed.
 
-The template version of the validator should open in a new window. You can use this version to create and test your customized data specifications.
+The template version of the validator should open in a new window.
 
-</details>
-
-<details>
-<summary><strong>2.3 Customizing the GUI</strong></summary>
-
-The validator contains several stand-in messages and instructions that can be customized for your project.
-
-These can be changed directly in `ui.R`. The table below shows where the main parts of the user interface are defined.
-
-| Part of the interface          | Where to look in `ui.R`                                      | What you can change                                           |
-| ------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------- |
-| **Validation Results tab**     | `tabPanel("Validation Results", ...)`                        | Tab name and contents                                         |
-| **Welcome/instruction text**   | `h3()`, `p()`, and `HTML()` elements near the top of the tab | Instructions, descriptions, links, and other user-facing text |
-| **Study drop-down**            | `selectInput("study", ...)`                                  | Label and instructions for selecting a study                  |
-| **Study Format drop-down**     | `selectInput("format", ...)`                                 | Label and instructions for selecting a format                 |
-| **CSV upload**                 | `fileInput("file", ...)`                                     | Upload instructions and accepted file types                   |
-| **Error display options**      | `radioButtons(...)`                                          | Labels and choices for viewing errors by column or row        |
-| **Validation preview**         | `DTOutput(...)`                                              | Placement and surrounding instructions for the preview table  |
-| **Highlighted file download**  | `downloadButton(...)`                                        | Button label and surrounding instructions                     |
-| **Specification Creation tab** | `tabPanel("Specification Creation", ...)`                    | Tab name and specification-creation instructions              |
-| **Specification tab**          | `tabPanel("Specification", ...)`                             | Tab name and specification display                            |
-
-The exact line numbers may change as you customize the application, so it is better to use the element names above to locate the relevant section of `ui.R`.
-
-You can also modify the layout and add additional elements if you are familiar with Shiny and Markdown.
-
-> **Tip:** For most projects, you only need to change the user-facing text. You do not need to modify the underlying code.
+You can use this version to create and test your customized configurations and data specifications.
 
 </details>
 
 <details>
-<summary><strong>2.4 Creating your data specification</strong></summary>
+<summary><strong>2.3 Understanding configurations</strong></summary>
+
+ShinyValidator separates the **application configuration** from the **data specifications**.
+
+Configurations are stored in the `configuration` folder as YAML files whose names begin with:
+
+```text
+config_
+```
+
+For example:
+
+```text
+config_ManyBabies.yaml
+config_default.yaml
+```
+
+The configuration controls the user-facing content of the application, including:
+
+* application title;
+* welcome message;
+* secondary message;
+* instruction set names;
+* instruction set contents;
+* links; and
+* specification message.
+
+This means that the same ShinyValidator code can be used with different configurations without modifying the underlying R code.
+
+### Configuration structure
+
+A configuration file follows this general structure:
+
+```yaml
+app_title: My Data Validator
+
+welcome_message: Welcome to the validator!
+
+secondary_message:
+
+instruction_set_1_name: Getting Started
+instruction_set_1:
+- Select a study
+- Select a format
+- Upload your dataset
+
+links:
+- text: Project Website
+  url: https://example.com/
+
+instruction_set_2_name: Upload Instructions
+instruction_set_2:
+- Upload your CSV file
+- Check the validation results
+
+specification_message: This is the specification used to validate your dataset.
+```
+
+The exact contents can be customized to suit your project.
+
+For most users, the easiest way to create a configuration is to use **Configuration Creation** within the application rather than editing YAML manually.
+
+</details>
+
+<details>
+<summary><strong>2.4 Customizing the GUI</strong></summary>
+
+The validator contains several user-facing elements that can be customized for your project.
+
+Most of the content can be changed through the **Configuration Creation** function rather than directly modifying `ui.R`.
+
+The following table summarizes the main customization options:
+
+| Interface element          | Recommended method     | What can be changed                                |
+| -------------------------- | ---------------------- | -------------------------------------------------- |
+| **Application title**      | Configuration Creation | Application name displayed at the top              |
+| **Welcome message**        | Configuration Creation | Main introductory message                          |
+| **Secondary message**      | Configuration Creation | Additional introductory text                       |
+| **Instruction Set 1**      | Configuration Creation | Section name and instructions                      |
+| **Instruction Set 2**      | Configuration Creation | Section name and instructions                      |
+| **Links**                  | Configuration Creation | Link text and destination URLs                     |
+| **Specification message**  | Configuration Creation | Description shown above specification details      |
+| **Study selection**        | `ui.R` / `server.R`    | Labels and interface behavior                      |
+| **Study format selection** | `ui.R` / `server.R`    | Labels and interface behavior                      |
+| **CSV upload**             | `ui.R`                 | Upload label and accepted file types               |
+| **Error display**          | `ui.R`                 | Labels and display options                         |
+| **Validation preview**     | `ui.R` / `server.R`    | Layout and behavior                                |
+| **Overall appearance**     | `ui.R`                 | Colors, spacing, fonts, cards, buttons, and layout |
+
+The exact line numbers may change as you customize the application, so it is better to search for the relevant element or input ID rather than relying on line numbers.
+
+> **Tip:** For most projects, you should not need to modify `ui.R` or `server.R`. Use **Configuration Creation** whenever possible.
+
+</details>
+
+<details>
+<summary><strong>2.5 Creating your data specification</strong></summary>
 
 The next step is to specify what columns your dataset must contain and what values are allowed for each column.
 
-Data specifications are stored as `.yaml` files in the `data_specifications` folder. However, **you do not need to write the YAML code yourself**.
+Data specifications are stored as `.yaml` files in the `data_specifications` folder.
 
-Instead, open the validator and navigate to the **Specification Creation** tab.
+However, **you do not need to write the YAML code yourself**.
+
+Instead, open the validator and navigate to the **Specification Creation** function.
 
 Enter the number of variables you want to include in your specification. The validator will then generate fields for you to define each variable.
-
-> **Important:** You can change the number of variables at any time, but decreasing the number of variables will erase some of your progress (e.g. going from 10 down to 9 will erase variable 10 permanently).
 
 There are three main variable types:
 
@@ -168,8 +345,7 @@ There are three main variable types:
 * **Numeric** — values must be numeric and can optionally be restricted by range and decimal requirements.
 * **String** — values can be open-ended but can be restricted by capitalization, character length, or a regular expression.
 
-<details>
-<summary><strong>Options</strong></summary>
+### Options
 
 Use **Options** when you want to specify exactly which values are allowed.
 
@@ -179,10 +355,7 @@ For example, a `color` variable could allow only:
 * `yellow`
 * `blue`
 
-</details>
-
-<details>
-<summary><strong>Numeric</strong></summary>
+### Numeric
 
 Use **Numeric** when a variable should contain numbers.
 
@@ -195,10 +368,7 @@ You can optionally specify:
 
 For example, a `reaction_time_ms` variable could be restricted to values between `300` and `10000`.
 
-</details>
-
-<details>
-<summary><strong>String</strong></summary>
+### String
 
 Use **String** when a variable contains open-ended text.
 
@@ -208,41 +378,64 @@ You can optionally restrict:
 * minimum character length; and
 * maximum character length.
 
-You can also use examples to generate a regular-expression-based restriction for variables that follow a consistent pattern.
-
-</details>
+You can also provide examples to generate a regular-expression-based restriction for variables that follow a consistent pattern.
 
 </details>
 
 <details>
-<summary><strong>2.5 Adding your data specification</strong></summary>
+<summary><strong>2.6 Adding your data specification</strong></summary>
 
 Once you have finished defining your variables, click **Download Setup** to download your `.yaml` specification.
 
-Move the downloaded file into the `data_specifications` folder.
+Data specifications must be named according to the configuration, study, and format they belong to.
 
-Rename the file using the following format:
+The general naming structure is:
 
 ```text
-studyname_formatname.yaml
+configuration_study_format.yaml
 ```
 
 For example:
 
 ```text
-FishSpeed_RawData.yaml
+ManyBabies_FishSpeed_RawData.yaml
 ```
 
-would create a study called `FishSpeed` with a format called `RawData`.
+This identifies:
 
-> **Important:** The filename must not contain spaces or special characters. Use capitalization to separate words.
+| Component     | Value        |
+| ------------- | ------------ |
+| Configuration | `ManyBabies` |
+| Study         | `FishSpeed`  |
+| Format        | `RawData`    |
 
-After adding the file, relaunch the application. Your new study and format should now appear in the appropriate drop-down menus.
+The configuration name corresponds to the configuration file:
+
+```text
+config_ManyBabies.yaml
+```
+
+The specification should then be placed in:
+
+```text
+data_specifications/
+```
+
+For example:
+
+```text
+data_specifications/
+└── ManyBabies_FishSpeed_RawData.yaml
+```
+
+> **Important:** The configuration, study, and format names must match the names used by the application. Avoid spaces and special characters in filenames.
+
+After adding the file, relaunch the application. The appropriate study and format should now appear when the corresponding configuration is selected.
 
 </details>
 
 <details>
-<summary><strong>2.6 Testing your specification</strong></summary>
+<summary><strong>2.7 Testing your specification</strong></summary>
 
 Before using your validator with real datasets, test your new specification with a small sample dataset.
 
@@ -253,20 +446,104 @@ Ideally, create a `.csv` file containing:
 
 Upload this dataset to the validator and check that the expected errors are identified.
 
+Test several types of errors, including:
+
+* missing required columns;
+* invalid option values;
+* invalid numeric values;
+* values outside permitted ranges;
+* incorrect decimal places;
+* incorrect capitalization;
+* strings that are too short or too long; and
+* values that do not match regular-expression requirements.
+
 You can also click **Download Highlighted File** to create an Excel version of the dataset with invalid cells highlighted.
 
 </details>
 
 <details>
-<summary><strong>2.7 Making manual adjustments</strong></summary>
+<summary><strong>2.8 Creating a configuration</strong></summary>
 
-If you discover that your specification needs to be changed after testing, you can either recreate it using the **Specification Creation** tab or edit the `.yaml` file directly.
+If your project requires customized instructions or multiple configurations, use the **Configuration Creation** function.
 
-The `.yaml` file contains the same information as the Specification Creation interface, but in a format that can be edited manually.
+The configuration creator allows you to specify:
 
-For most users, the **Specification Creation** tab is the easiest way to make changes.
+### Application information
+
+* Application title
+* Welcome message
+* Secondary message
+
+### Instructions
+
+* Instruction Set 1 name
+* Instruction Set 1 content
+* Instruction Set 2 name
+* Instruction Set 2 content
+
+The instruction set names are fully customizable. This allows the same underlying application to use terminology appropriate to different projects.
+
+### Links
+
+You can add links to relevant project websites, documentation, registration pages, or other resources.
+
+### Specification information
+
+You can define the message displayed above the human-readable specification.
+
+Once complete, click **Download Configuration**.
+
+Place the resulting file in:
+
+```text
+configuration/
+```
+
+Configuration files should follow the naming convention:
+
+```text
+config_ProjectName.yaml
+```
+
+For example:
+
+```text
+config_ManyBabies.yaml
+```
+
+The project name is then used to associate the configuration with its corresponding data specifications.
+
+</details>
+
+<details>
+<summary><strong>2.9 Making manual adjustments</strong></summary>
+
+If you discover that your configuration or specification needs to be changed after testing, you can either recreate it using the appropriate creation function or edit the `.yaml` file directly.
+
+The YAML files contain the same information represented by the creation interfaces, but in a format that can be edited manually.
+
+For most users, the **Specification Creation** and **Configuration Creation** functions are the easiest way to make changes.
+
+Manual editing can be useful when making small changes to an existing configuration or specification.
 
 Once your validator is working as expected, you can use it locally or deploy it online using `shinyapps.io`.
+
+</details>
+
+<details>
+<summary><strong>2.10 Deploying the validator</strong></summary>
+
+Once your validator has been tested locally, it can be deployed to `shinyapps.io` using the `rsconnect` package.
+
+A typical deployment workflow is:
+
+1. Install `rsconnect`.
+2. Connect RStudio to your `shinyapps.io` account.
+3. Open the ShinyValidator project.
+4. Run the application locally and confirm that it works.
+5. Deploy the application using the RStudio publishing tools or `rsconnect`.
+
+The configuration files and data specifications contained in the project should be included in the deployed application.
 
 </details>
 
@@ -278,108 +555,321 @@ The **Back-end Developer Documentation** provides detailed information about the
 
 This section is intended for researchers and developers who wish to add new functions, modify existing functionality, or otherwise customize the validator beyond the options described in Section 2.
 
+If you only want to create a validator for your own project, you generally do not need to modify the code described in this section.
+
+---
+
 <details>
 <summary><strong>3.1 Application architecture</strong></summary>
 
 The validator is organized across five primary R files:
 
-| File             | Purpose                                       |
-| ---------------- | --------------------------------------------- |
-| `app.R`          | Application initialization and launch         |
-| `ui.R`           | User interface and layout                     |
-| `server.R`       | Server-side application logic                 |
-| `common.R`       | Shared functions and validation functions     |
-| `ErrorHandler.R` | Error handling and downloadable error reports |
+| File             | Purpose                                            |
+| ---------------- | -------------------------------------------------- |
+| `app.R`          | Application initialization and launch              |
+| `ui.R`           | User interface, layout, and styling                |
+| `server.R`       | Server-side application logic and reactive outputs |
+| `common.R`       | Shared functions and dataset validation            |
+| `ErrorHandler.R` | Error handling and downloadable validation reports |
 
-The validator also relies on `.yaml` files stored in the `data_specifications` folder to define study-specific data requirements.
+The validator also relies on two important collections of YAML files:
+
+| Folder                 | Purpose                                                    |
+| ---------------------- | ---------------------------------------------------------- |
+| `configuration/`       | Defines application-level settings and user-facing content |
+| `data_specifications/` | Defines study- and format-specific dataset requirements    |
+
+The general relationship between these components is:
+
+```text
+Configuration
+     │
+     ├── Application title
+     ├── Instructions
+     ├── Links
+     └── Specification message
+     │
+     ▼
+Selected configuration
+     │
+     ▼
+Study + Format
+     │
+     ▼
+Data specification
+     │
+     ▼
+Uploaded CSV
+     │
+     ▼
+validate_dataset()
+     │
+     ├── Validation Results
+     ├── Validation Preview
+     ├── Error Display
+     └── Highlighted Excel Download
+```
 
 </details>
 
 <details>
-<summary><strong>3.2 app.R</strong></summary>
+<summary><strong>3.2 Configuration system</strong></summary>
+
+The configuration system allows the same Shiny application code to support multiple projects or study collections.
+
+Configuration files are stored in:
+
+```text
+configuration/
+```
+
+and must begin with:
+
+```text
+config_
+```
+
+For example:
+
+```text
+config_default.yaml
+config_ManyBabies.yaml
+```
+
+`ui.R` identifies available configuration files automatically using the filename pattern:
+
+```r
+^config_.+\.(yaml|yml)$
+```
+
+The selected configuration is loaded reactively in `server.R`.
+
+The configuration determines application-level content such as:
+
+```yaml
+app_title:
+welcome_message:
+secondary_message:
+instruction_set_1_name:
+instruction_set_1:
+links:
+instruction_set_2_name:
+instruction_set_2:
+specification_message:
+```
+
+This approach means that user-facing content can be changed without modifying the application logic.
+
+### Configuration-specific specifications
+
+Specifications are associated with configurations through their filenames.
+
+For a configuration:
+
+```text
+config_ManyBabies.yaml
+```
+
+a corresponding specification might be:
+
+```text
+ManyBabies_FishSpeed_RawData.yaml
+```
+
+The configuration name is extracted from the configuration filename and used by `server.R` to identify the appropriate specifications.
+
+This prevents specifications belonging to different projects from being mixed together.
+
+</details>
+
+<details>
+<summary><strong>3.3 app.R</strong></summary>
 
 `app.R` is the entry point for the Shiny application. It:
 
-1. Loads the core packages needed to launch the application.
+1. Loads the core application components.
 2. Sources `ui.R` and `server.R`.
 3. Launches the application with `shinyApp()`.
 
-The file generally does not need to be modified when adapting the validator. If additional R files are added, they should generally be sourced from the appropriate component file rather than directly from `app.R`.
+The file generally does not need to be modified when adapting the validator.
+
+If additional R files are added, they should generally be sourced from the appropriate component file rather than directly from `app.R`.
 
 </details>
 
 <details>
-<summary><strong>3.3 ui.R</strong></summary>
+<summary><strong>3.4 ui.R</strong></summary>
 
-`ui.R` defines the application's user interface.
+`ui.R` defines the application's user interface, layout, and visual styling.
 
-The main interface contains three tabs:
+The sidebar provides:
 
-* **Validation Results** — study/format selection, CSV upload, error display options, validation preview, and highlighted-file download.
-* **Specification Creation** — allows users to create a YAML specification by defining the number and properties of variables.
-* **Specification** — displays the human-readable specification for the selected study and format.
+* configuration selection;
+* study selection;
+* format selection;
+* CSV upload; and
+* navigation between the validator functions.
 
-### Customizing the UI
+The main panel contains four functions:
 
-User-facing text, instructions, links, and the overall layout can be modified directly in `ui.R`. The welcome messages in the **Validation Results** tab are intended to be replaced with project-specific instructions.
+* **Validation Results**
+* **Specification Details**
+* **Specification Creation**
+* **Configuration Creation**
 
-The application uses `shinythemes` for the visual theme and `DT` for the validation preview table.
+### Dynamic UI
 
-A small JavaScript component automatically updates specification tab labels as variable names are entered. This should generally be left unchanged unless the specification-creation interface is modified.
+Several parts of the interface are generated dynamically using `uiOutput()` and server-side `renderUI()` calls.
+
+Examples include:
+
+* study selection;
+* study format selection;
+* configuration creation fields;
+* specification creation variable tabs;
+* validation errors;
+* specification details.
+
+### JavaScript components
+
+A small JavaScript component in `ui.R` updates dynamically generated labels in the specification and configuration creation interfaces.
+
+For example, variable tabs are automatically renamed as users enter variable names.
+
+The configuration creation interface also updates the displayed instruction-set headings when users change the names of Instruction Set 1 or Instruction Set 2.
+
+These JavaScript components should generally be left unchanged unless the corresponding UI elements are modified.
+
+### Styling
+
+The application uses custom CSS in `ui.R` to provide:
+
+* application header styling;
+* content cards;
+* purple accent colors;
+* styled navigation;
+* form controls;
+* buttons;
+* validation tables; and
+* other visual elements.
+
+The application also uses `shinythemes` for the base theme and `DT` for interactive validation tables.
 
 </details>
 
 <details>
-<summary><strong>3.4 server.R</strong></summary>
+<summary><strong>3.5 server.R</strong></summary>
 
-`server.R` contains the server-side logic for the application. It connects the UI inputs to the validation functions in `common.R` and generates the application's outputs.
+`server.R` contains the server-side logic for the application. It connects UI inputs to the validation functions in `common.R` and generates the application's outputs.
 
-### Main components
+### Configuration loading
 
-* **Study and format selection** — dynamically updates the available study formats based on the selected study.
-* **Specification display** — loads the selected YAML file and displays its requirements.
-* **Validation errors** — validates the uploaded dataset and displays errors by column or row.
-* **Specification creation** — collects the user's variable settings and converts them into a YAML-compatible structure.
-* **Specification download** — generates and downloads the user-created YAML specification.
-* **Variable tabs** — dynamically creates and removes tabs based on the requested number of variables.
-* **Option and example inputs** — generates additional inputs for option values and example-based string validation.
-* **Highlighted dataset download** — validates the uploaded dataset and creates an Excel file highlighting invalid cells.
-* **Validation preview** — displays the uploaded dataset and highlights invalid cells in the table.
+The selected configuration is loaded using a reactive expression:
+
+```r
+selected_config <- reactive({
+  req(input$configuration)
+  yaml::read_yaml(
+    file.path("configuration", input$configuration)
+  )
+})
+```
+
+The configuration name is also extracted from the selected filename so that the appropriate data specifications can be identified.
+
+### Study and format selection
+
+Available specifications are determined from the selected configuration.
+
+For example, if the selected configuration is:
+
+```text
+ManyBabies
+```
+
+the application searches for specifications beginning with:
+
+```text
+ManyBabies_
+```
+
+This allows different configurations to have different collections of studies and formats.
+
+### Main server components
+
+`server.R` contains logic for:
+
+* loading the selected configuration;
+* identifying available specifications;
+* generating study and format selectors;
+* displaying configuration-specific instructions;
+* displaying specification details;
+* validating uploaded datasets;
+* displaying errors by column or row;
+* generating the validation preview;
+* generating highlighted Excel downloads;
+* creating specification fields dynamically;
+* creating configuration fields dynamically;
+* generating downloadable YAML specifications; and
+* generating downloadable YAML configurations.
 
 ### Validation workflow
 
 The main validation outputs follow this general workflow:
 
-1. Load the YAML specification corresponding to the selected study and format.
-2. Read the uploaded CSV dataset.
-3. Pass the specification and dataset to `validate_dataset()` in `common.R`.
-4. Process the returned issues.
-5. Display the results or generate the highlighted Excel file.
+1. Identify the selected configuration.
+2. Identify the selected study and format.
+3. Construct the corresponding specification filename.
+4. Load the YAML specification.
+5. Read the uploaded CSV dataset.
+6. Pass the specification and dataset to `validate_dataset()` in `common.R`.
+7. Process the returned issues.
+8. Display the results or generate the highlighted Excel file.
+
+Configuration-specific specification paths generally follow:
+
+```r
+yaml_file_path <- paste0(
+  "data_specifications/",
+  selected_configuration_name(),
+  "_",
+  input$study,
+  "_",
+  input$format,
+  ".yaml"
+)
+```
+
+It is important that all validation-related outputs use this same configuration-aware naming structure.
 
 </details>
 
 <details>
-<summary><strong>3.5 common.R</strong></summary>
+<summary><strong>3.6 common.R</strong></summary>
 
-`common.R` contains the core data-validation functions used by the application. It also identifies available study/format combinations and generates user-facing explanations for validation errors.
+`common.R` contains the core data-validation functions used by the application.
 
 ### Study and format discovery
 
-The `studies` object is generated automatically by reading `.yaml` files from the `data_specifications` folder. Filenames are split at the underscore to identify the study and format.
+Available specifications are identified from the YAML files stored in `data_specifications`.
+
+The configuration name is used to distinguish specifications belonging to different configurations.
 
 For example:
 
 ```text
-FishSpeed_RawData.yaml
+ManyBabies_FishSpeed_RawData.yaml
 ```
 
-is interpreted as:
+can be interpreted as:
 
-| study     | format  |
-| --------- | ------- |
-| FishSpeed | RawData |
+| Component     | Value        |
+| ------------- | ------------ |
+| Configuration | `ManyBabies` |
+| Study         | `FishSpeed`  |
+| Format        | `RawData`    |
 
-Therefore, adding a correctly named YAML file to `data_specifications` automatically makes the study/format available to the application.
+Adding a correctly named specification automatically makes it available to the corresponding configuration.
 
 ### Dataset validation
 
@@ -387,10 +877,10 @@ Therefore, adding a correctly named YAML file to `data_specifications` automatic
 
 1. Checks that all required columns are present.
 2. Passes each existing field to `validate_dataset_field()`.
-3. Collects any validation issues.
+3. Collects validation issues.
 4. Returns whether the dataset is valid and, if not, a list of issues.
 
-`validate_dataset_field()` determines which validation function should be used based on the field specification:
+`validate_dataset_field()` determines which validation function should be used based on the field specification.
 
 | Field type | Validation function                     |
 | ---------- | --------------------------------------- |
@@ -426,7 +916,9 @@ Issues contain information such as the error type, column, invalid value, and ro
 
 ### Error explanations
 
-`explain_error()` converts validation issues into user-facing explanations. It uses the field specification to describe the relevant requirement, while allowing individual fields to provide a custom `error_message`.
+`explain_error()` converts validation issues into user-facing explanations.
+
+It uses the field specification to describe the relevant requirement while allowing individual fields to provide a custom `error_message`.
 
 ### Developer notes
 
@@ -437,9 +929,9 @@ If adding a new field type, update `validate_dataset_field()` so that the new ty
 </details>
 
 <details>
-<summary><strong>3.6 ErrorHandler.R</strong></summary>
+<summary><strong>3.7 ErrorHandler.R</strong></summary>
 
-`ErrorHandler.R` contains the function used to generate the downloadable Excel validation report.
+`ErrorHandler.R` contains the functions used to generate downloadable Excel validation reports.
 
 ### `highlight_csv_to_xlsx()`
 
@@ -457,3 +949,72 @@ The function returns an `openxlsx` workbook object, which is saved by the downlo
 If new issue types are added to `common.R`, update `highlight_csv_to_xlsx()` if those issues should appear in the downloadable error report.
 
 </details>
+
+---
+
+# File and Folder Structure
+
+A typical ShinyValidator project contains the following structure:
+
+```text
+ShinyValidator/
+│
+├── app.R
+├── ui.R
+├── server.R
+├── common.R
+├── ErrorHandler.R
+├── ShinyValidator.Rproj
+│
+├── configuration/
+│   ├── config_default.yaml
+│   └── config_ManyBabies.yaml
+│
+├── data_specifications/
+│   ├── ManyBabies_StudyA_Format1.yaml
+│   └── ManyBabies_StudyB_Format1.yaml
+│
+├── sample_datasets/
+│   ├── valid_dataset.csv
+│   └── invalid_dataset.csv
+│
+└── README_images/
+    ├── step_2.1.png
+    └── step_2.2.png
+```
+
+The most important distinction is:
+
+**Configurations define how the validator behaves and what it tells the user.**
+
+**Specifications define what the user's dataset must contain.**
+
+This separation allows the same application code to be reused across different projects.
+
+---
+
+# Summary of the Recommended Workflow
+
+For most users, creating a new validator should require little or no R programming.
+
+The recommended workflow is:
+
+```text
+1. Download ShinyValidator
+          ↓
+2. Run the app locally
+          ↓
+3. Create a configuration
+          ↓
+4. Create one or more specifications
+          ↓
+5. Add specifications to data_specifications/
+          ↓
+6. Test with sample datasets
+          ↓
+7. Customize the UI if necessary
+          ↓
+8. Deploy locally or to shinyapps.io
+```
+
+The **Configuration Creation** and **Specification Creation** functions are intended to handle most customization needs. Direct modification of `ui.R`, `server.R`, or `common.R` should generally only be necessary when adding functionality beyond the existing template.
