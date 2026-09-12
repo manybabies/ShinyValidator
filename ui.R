@@ -6,8 +6,25 @@ library(yaml)
 # Load shared functions
 source("common.R")
 
-# Load configuration
-config <- yaml::read_yaml("configuration/config.yaml")
+# Load default configuration
+config <- yaml::read_yaml("configuration/config_default.yaml")
+
+# Available configurations
+configuration_files <- list.files(
+  "configuration",
+  pattern = "^config_.+\\.(yaml|yml)$",
+  full.names = FALSE
+)
+
+# Display configuration names without the "config_" prefix or file extension
+configuration_choices <- setNames(
+  configuration_files,
+  sub(
+    "^config_(.*)\\.(yaml|yml)$",
+    "\\1",
+    configuration_files
+  )
+)
 
 # UI
 ui <- fluidPage(
@@ -66,7 +83,8 @@ ui <- fluidPage(
     "))
   ),
   
-  titlePanel(config$app_title),
+  # Application title
+  uiOutput("app_title"),
   
   br(),
   
@@ -75,6 +93,14 @@ ui <- fluidPage(
     # Sidebar
     sidebarPanel(
       width = 3,
+      
+      # Configuration selection
+      selectInput(
+        "configuration",
+        h4("Configuration"),
+        choices = configuration_choices,
+        selected = configuration_files[1]
+      ),
       
       # Study selection
       selectInput(
@@ -124,79 +150,7 @@ ui <- fluidPage(
       conditionalPanel(
         condition = "input.page == 'validation_results'",
         
-        h3("Validation Results"),
-        
-        p(
-          strong(config$welcome_message)
-        ),
-        
-        p(
-          em(config$secondary_message)
-        ),
-        
-        # Instruction Sets and Links
-        fluidRow(
-          
-          # Instruction Sets
-          column(
-            width = 8,
-            
-            if (
-              !is.null(config$instruction_set_1) &&
-              length(config$instruction_set_1) > 0
-            ) {
-              tagList(
-                h4("Instruction Set 1"),
-                
-                lapply(
-                  config$instruction_set_1,
-                  function(x) p(x)
-                )
-              )
-            },
-            
-            if (
-              !is.null(config$instruction_set_2) &&
-              length(config$instruction_set_2) > 0
-            ) {
-              tagList(
-                h4("Instruction Set 2"),
-                
-                lapply(
-                  config$instruction_set_2,
-                  function(x) p(x)
-                )
-              )
-            }
-          ),
-          
-          # Links
-          column(
-            width = 4,
-            
-            if (
-              !is.null(config$links) &&
-              length(config$links) > 0
-            ) {
-              tagList(
-                h4("Links"),
-                
-                lapply(
-                  config$links,
-                  function(link) {
-                    tags$p(
-                      tags$a(
-                        href = link$url,
-                        link$text,
-                        target = "_blank"
-                      )
-                    )
-                  }
-                )
-              )
-            }
-          )
-        ),
+        uiOutput("validation_config_content"),
         
         br(),
         
@@ -231,9 +185,7 @@ ui <- fluidPage(
         
         h3("Specification Details"),
         
-        p(
-          config$specification_message
-        ),
+        uiOutput("specification_message"),
         
         uiOutput("specification")
       ),
@@ -268,186 +220,7 @@ ui <- fluidPage(
       conditionalPanel(
         condition = "input.page == 'configuration_creation'",
         
-        h3("Configuration Creation"),
-        
-        h4("Create your configuration"),
-        
-        p(
-          "Customize the text and links used by your ShinyValidator. ",
-          "The fields below are pre-populated with the current configuration."
-        ),
-        
-        # Application title
-        textInput(
-          "config_app_title",
-          "Application title:",
-          value = config$app_title
-        ),
-        
-        # Welcome message
-        checkboxInput(
-          "enable_welcome_message",
-          "Enable welcome message",
-          value = !is.null(config$welcome_message) &&
-            nzchar(config$welcome_message)
-        ),
-        
-        conditionalPanel(
-          condition = "input.enable_welcome_message",
-          
-          textAreaInput(
-            "config_welcome_message",
-            "Welcome message:",
-            value = if (
-              is.null(config$welcome_message)
-            ) {
-              ""
-            } else {
-              config$welcome_message
-            },
-            rows = 3
-          )
-        ),
-        
-        # Secondary message
-        checkboxInput(
-          "enable_secondary_message",
-          "Enable secondary message",
-          value = !is.null(config$secondary_message) &&
-            nzchar(config$secondary_message)
-        ),
-        
-        conditionalPanel(
-          condition = "input.enable_secondary_message",
-          
-          textAreaInput(
-            "config_secondary_message",
-            "Secondary message:",
-            value = if (
-              is.null(config$secondary_message)
-            ) {
-              ""
-            } else {
-              config$secondary_message
-            },
-            rows = 3
-          )
-        ),
-        
-        br(),
-        
-        # Instruction Sets and Links
-        fluidRow(
-          
-          # Instruction Set 1
-          column(
-            width = 4,
-            
-            h4("Instruction Set 1"),
-            
-            checkboxInput(
-              "enable_instruction_set_1",
-              "Enable Instruction Set 1",
-              value = !is.null(config$instruction_set_1) &&
-                length(config$instruction_set_1) > 0
-            ),
-            
-            conditionalPanel(
-              condition = "input.enable_instruction_set_1",
-              
-              numericInput(
-                "num_instruction_lines",
-                "Number of instruction lines:",
-                value = if (
-                  is.null(config$instruction_set_1)
-                ) {
-                  1
-                } else {
-                  length(unlist(config$instruction_set_1))
-                },
-                min = 1,
-                max = 20
-              ),
-              
-              uiOutput("instruction_fields")
-            )
-          ),
-          
-          # Instruction Set 2
-          column(
-            width = 4,
-            
-            h4("Instruction Set 2"),
-            
-            checkboxInput(
-              "enable_instruction_set_2",
-              "Enable Instruction Set 2",
-              value = !is.null(config$instruction_set_2) &&
-                length(config$instruction_set_2) > 0
-            ),
-            
-            conditionalPanel(
-              condition = "input.enable_instruction_set_2",
-              
-              numericInput(
-                "num_upload_instruction_lines",
-                "Number of instruction lines:",
-                value = if (
-                  is.null(config$instruction_set_2)
-                ) {
-                  1
-                } else {
-                  length(unlist(config$instruction_set_2))
-                },
-                min = 1,
-                max = 20
-              ),
-              
-              uiOutput("upload_instruction_fields")
-            )
-          ),
-          
-          # Links
-          column(
-            width = 4,
-            
-            h4("Links"),
-            
-            checkboxInput(
-              "enable_links",
-              "Enable Links",
-              value = !is.null(config$links) &&
-                length(config$links) > 0
-            ),
-            
-            conditionalPanel(
-              condition = "input.enable_links",
-              
-              numericInput(
-                "num_links",
-                "Number of links:",
-                value = if (
-                  is.null(config$links)
-                ) {
-                  1
-                } else {
-                  length(config$links)
-                },
-                min = 1,
-                max = 20
-              ),
-              
-              uiOutput("link_fields")
-            )
-          )
-        ),
-        
-        br(),
-        
-        downloadButton(
-          "downloadConfiguration",
-          "Download Configuration"
-        )
+        uiOutput("configuration_creation_content")
       )
     )
   ),
