@@ -25,6 +25,116 @@ server <- function(input, output, session) {
     )
   })
   
+  # Selected configuration name
+  
+  selected_configuration_name <- reactive({
+    
+    req(input$configuration)
+    
+    tools::file_path_sans_ext(
+      sub(
+        "^config_",
+        "",
+        input$configuration
+      )
+    )
+  })
+  
+  # Available specifications
+  
+  available_specifications <- reactive({
+    
+    req(selected_configuration_name())
+    
+    config_name <- selected_configuration_name()
+    
+    list.files(
+      "data_specifications",
+      pattern = paste0(
+        "^",
+        config_name,
+        "_.*\\.yaml$"
+      ),
+      full.names = FALSE
+    )
+  })
+  
+  # Specification information
+  
+  specification_info <- reactive({
+    
+    files <- available_specifications()
+    
+    req(length(files) > 0)
+    
+    tibble(
+      file = files,
+      study = sub(
+        "^[^_]+_([^_]+)_.*\\.yaml$",
+        "\\1",
+        files
+      ),
+      format = sub(
+        "^[^_]+_[^_]+_(.*)\\.yaml$",
+        "\\1",
+        files
+      )
+    )
+  })
+  
+  # Study selection
+  
+  output$study_selection <- renderUI({
+    
+    info <- specification_info()
+    
+    studies_available <- unique(info$study)
+    
+    if (length(studies_available) == 0) {
+      
+      div(
+        class = "no-specifications",
+        
+        strong("No specifications available"),
+        
+        p(
+          "No data specifications have been created for this configuration."
+        )
+      )
+      
+    } else {
+      
+      selectInput(
+        "study",
+        h4("Study"),
+        choices = studies_available
+      )
+    }
+  })
+  
+  ## Reset study when configuration changes
+  
+  observeEvent(
+    selected_configuration_name(),
+    {
+      info <- specification_info()
+      
+      studies_available <- unique(info$study)
+      
+      updateSelectInput(
+        session,
+        "study",
+        choices = studies_available,
+        selected = if (length(studies_available) > 0) {
+          studies_available[1]
+        } else {
+          NULL
+        }
+      )
+    },
+    ignoreInit = FALSE
+  )
+  
   # Application title
   
   output$app_title <- renderUI({
@@ -347,13 +457,47 @@ server <- function(input, output, session) {
   ## Study format
   
   output$study_format <- renderUI({
+    
+    req(input$study)
+    
+    info <- specification_info()
+    
+    available_formats <- info %>%
+      filter(study == input$study) %>%
+      pull(format)
+    
     selectInput(
       "format",
       label = h4("Study Format"),
-      choices = filter(studies, study == input$study)$format
+      choices = available_formats
     )
   })
   
+  ## Reset format when study changes
+  
+  observeEvent(
+    input$study,
+    {
+      info <- specification_info()
+      
+      formats_available <- info %>%
+        filter(study == input$study) %>%
+        pull(format) %>%
+        unique()
+      
+      updateSelectInput(
+        session,
+        "format",
+        choices = formats_available,
+        selected = if (length(formats_available) > 0) {
+          formats_available[1]
+        } else {
+          NULL
+        }
+      )
+    },
+    ignoreInit = FALSE
+  )
   
   ## Specification
   
@@ -363,6 +507,8 @@ server <- function(input, output, session) {
     
     yaml_file_path <- paste0(
       "data_specifications/",
+      selected_configuration_name(),
+      "_",
       input$study,
       "_",
       input$format,

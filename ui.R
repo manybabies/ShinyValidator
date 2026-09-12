@@ -119,6 +119,31 @@ ui <- fluidPage(
         margin-bottom: 8px;
       }
       
+      /* No specifications message */
+      
+      .no-specifications {
+        background-color: #f3f0f8;
+        border: 1px solid #ddd7e9;
+        border-left: 4px solid #8f82b1;
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-top: 5px;
+        margin-bottom: 15px;
+      }
+      
+      .no-specifications strong {
+        display: block;
+        color: #554d72;
+        margin-bottom: 5px;
+      }
+      
+      .no-specifications p {
+        color: #6a6877;
+        font-size: 13px;
+        line-height: 1.5;
+        margin: 0;
+      }
+      
       /* Form controls */
       
       .form-control,
@@ -444,11 +469,7 @@ ui <- fluidPage(
       ),
       
       # Study selection
-      selectInput(
-        "study",
-        h4("Study"),
-        choices = unique(studies$study)
-      ),
+      uiOutput("study_selection"),
       
       uiOutput("study_format"),
       
@@ -553,7 +574,7 @@ ui <- fluidPage(
           p(
             "Create a data specification for your validator. ",
             "The fields below allow you to define the variables, data types, ",
-            "allowed values, and validation requirements for your dataset.",
+            "allowed values, and validation requirements for your dataset. ",
             "Start by selecting how many variables you need for your specification."
           ),
           
