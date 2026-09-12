@@ -3,20 +3,25 @@ library(shinythemes)
 library(DT)
 library(yaml)
 
-# Load shared functions
+
+# Load shared functions ------------------------------------------------------------------
+
 source("common.R")
 
-# Load default configuration
+
+# Load default and available configuration -----------------------------------------------
+
 config <- yaml::read_yaml("configuration/config_Default.yaml")
 
-# Available configurations
 configuration_files <- list.files(
   "configuration",
   pattern = "^config_.+\\.(yaml|yml)$",
   full.names = FALSE
 )
 
-# Display configuration names without the "config_" prefix or file extension
+
+# Display configuration names ------------------------------------------------------------
+
 configuration_choices <- setNames(
   configuration_files,
   sub(
@@ -26,7 +31,9 @@ configuration_choices <- setNames(
   )
 )
 
-# Make the default configuration display as "Default"
+
+# Make the default configuration display as "Default" -----------------------------------
+
 if ("config_default.yaml" %in% names(configuration_choices)) {
   configuration_choices["config_default.yaml"] <- "Default"
 }
@@ -35,12 +42,16 @@ if ("config_default.yml" %in% names(configuration_choices)) {
   configuration_choices["config_default.yml"] <- "Default"
 }
 
-# UI
+
+# UI -------------------------------------------------------------------------------------
+
 ui <- fluidPage(
+  
+  
+  # Styling -------------------------------------------------------------------------------
   
   theme = shinythemes::shinytheme("spacelab"),
   
-  # Friendly science app styling
   tags$head(
     tags$style(HTML("
       
@@ -52,6 +63,7 @@ ui <- fluidPage(
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',
                      Roboto, Helvetica, Arial, sans-serif;
       }
+      
       
       /* Application header */
       
@@ -101,6 +113,7 @@ ui <- fluidPage(
         z-index: 1;
       }
       
+      
       /* Sidebar */
       
       .well {
@@ -118,6 +131,7 @@ ui <- fluidPage(
         margin-top: 4px;
         margin-bottom: 8px;
       }
+      
       
       /* No specifications message */
       
@@ -143,6 +157,7 @@ ui <- fluidPage(
         line-height: 1.5;
         margin: 0;
       }
+      
       
       /* Form controls */
       
@@ -172,6 +187,7 @@ ui <- fluidPage(
         padding: 8px 10px;
       }
       
+      
       /* Browse button */
       
       .form-group .btn-file,
@@ -190,6 +206,7 @@ ui <- fluidPage(
       .form-group .btn-file span {
         color: #ffffff !important;
       }
+      
       
       /* Download buttons */
       
@@ -233,12 +250,14 @@ ui <- fluidPage(
         box-shadow: 0 3px 8px rgba(75, 61, 109, 0.20) !important;
       }
       
+      
       /* Download Specification button text */
       
       #downloadSpecification span,
       #downloadSpecification i {
         color: #ffffff !important;
       }
+      
       
       /* Download Configuration button text */
       
@@ -247,12 +266,14 @@ ui <- fluidPage(
         color: #ffffff !important;
       }
       
+      
       /* Download Highlighted File button text */
       
       #downloadHighlighted span,
       #downloadHighlighted i {
         color: #ffffff !important;
       }
+      
       
       /* Navigation */
       
@@ -304,6 +325,7 @@ ui <- fluidPage(
         box-shadow: inset 4px 0 0 #8f82b1;
       }
       
+      
       /* Main content cards */
       
       .content-card {
@@ -314,6 +336,7 @@ ui <- fluidPage(
         margin-bottom: 20px;
         box-shadow: 0 3px 11px rgba(70, 65, 95, 0.05);
       }
+      
       
       /* Main headings */
       
@@ -331,6 +354,7 @@ ui <- fluidPage(
         margin-bottom: 12px;
       }
       
+      
       /* Section titles */
       
       .content-card h3 {
@@ -345,12 +369,14 @@ ui <- fluidPage(
         font-weight: 600;
       }
       
+      
       /* Text */
       
       .main-panel p {
         color: #626878;
         line-height: 1.65;
       }
+      
       
       /* Buttons */
       
@@ -360,6 +386,7 @@ ui <- fluidPage(
         box-shadow: none;
         transition: all 0.15s ease;
       }
+      
       
       /* Default buttons */
       
@@ -376,12 +403,14 @@ ui <- fluidPage(
         color: #554d72;
       }
       
+      
       /* Checkboxes and radio buttons */
       
       .checkbox label,
       .radio label {
         color: #626878;
       }
+      
       
       /* Data table */
       
@@ -393,6 +422,7 @@ ui <- fluidPage(
         margin-top: 20px;
         box-shadow: 0 3px 10px rgba(70, 65, 95, 0.045);
       }
+      
       
       /* Tabs */
       
@@ -420,6 +450,7 @@ ui <- fluidPage(
         border-bottom-color: #ffffff;
       }
       
+      
       /* Horizontal rules */
       
       hr {
@@ -428,11 +459,13 @@ ui <- fluidPage(
         margin-bottom: 22px;
       }
       
+      
       /* Labels */
       
       .control-label {
         color: #625d73;
       }
+      
       
       /* Validation configuration content */
       
@@ -447,19 +480,25 @@ ui <- fluidPage(
     "))
   ),
   
-  # Application title
+  
+  # Application title ---------------------------------------------------------------------
+  
   div(
     class = "app-title",
     uiOutput("app_title")
   ),
   
+  
+  # Sidebar -------------------------------------------------------------------------------
+  
   sidebarLayout(
     
-    # Sidebar
     sidebarPanel(
       width = 3,
       
-      # Configuration selection
+      
+      # Configuration selection ------------------------------------------------------------
+      
       selectInput(
         "configuration",
         h4("Configuration"),
@@ -467,7 +506,9 @@ ui <- fluidPage(
         selected = "config_default.yaml"
       ),
       
-      # Study selection
+      
+      # Study selection --------------------------------------------------------------------
+      
       uiOutput("study_selection"),
       
       uiOutput("study_format"),
@@ -485,7 +526,9 @@ ui <- fluidPage(
       
       hr(),
       
-      # Navigation
+      
+      # Navigation -------------------------------------------------------------------------
+      
       div(
         class = "navigation-menu",
         
@@ -503,11 +546,15 @@ ui <- fluidPage(
       )
     ),
     
-    # Main panel
+    
+    # Main panel ---------------------------------------------------------------------------
+    
     mainPanel(
       width = 9,
       
-      # Validation Results
+      
+      # Validation Results -----------------------------------------------------------------
+      
       conditionalPanel(
         condition = "input.page == 'validation_results'",
         
@@ -544,7 +591,9 @@ ui <- fluidPage(
         DTOutput("validation_preview")
       ),
       
-      # Specification
+      
+      # Specification Details --------------------------------------------------------------
+      
       conditionalPanel(
         condition = "input.page == 'specification'",
         
@@ -559,7 +608,9 @@ ui <- fluidPage(
         )
       ),
       
-      # Specification Creation
+      
+      # Specification Creation -------------------------------------------------------------
+      
       conditionalPanel(
         condition = "input.page == 'specification_creation'",
         
@@ -596,7 +647,9 @@ ui <- fluidPage(
         )
       ),
       
-      # Configuration Creation
+      
+      # Configuration Creation -------------------------------------------------------------
+      
       conditionalPanel(
         condition = "input.page == 'configuration_creation'",
         
@@ -609,11 +662,14 @@ ui <- fluidPage(
     )
   ),
   
-  # Update variable tab names and instruction set headings
+  
+  # JavaScript ----------------------------------------------------------------------------
+  
   tags$script(HTML("
+    
     document.addEventListener('input', function(event) {
       
-      # Variable tab names
+      // Variable tab names
       
       if (event.target.id.startsWith('field_name_')) {
         
@@ -631,7 +687,8 @@ ui <- fluidPage(
         }
       }
       
-      # Instruction Set 1 heading
+      
+      // Instruction Set 1 heading
       
       if (event.target.id === 'config_instruction_set_1_name') {
         
@@ -650,7 +707,8 @@ ui <- fluidPage(
         }
       }
       
-      # Instruction Set 2 heading
+      
+      // Instruction Set 2 heading
       
       if (event.target.id === 'config_instruction_set_2_name') {
         
@@ -660,12 +718,15 @@ ui <- fluidPage(
         
         if (heading) {
           
-          if (event.target.value.trim() === '') {
-            heading.textContent = 'Instruction Set 2';
-          } else {
-            heading.textContent = event.target.value;
+          if (heading) {
+            
+            if (event.target.value.trim() === '') {
+              heading.textContent = 'Instruction Set 2';
+            } else {
+              heading.textContent = event.target.value;
+            }
+            
           }
-          
         }
       }
     });
