@@ -14,7 +14,7 @@ This documentation is divided into five sections:
 
 1. [Primary Functions](#1-primary-functions) — how to use the validator and create specifications/configurations.
 2. [Adapting the Validator](#2-adapting-the-validator) — how to customize the validator for your own project.
-3. [Back-end Developer Documentation](#3-back--end-developer-documentation) — how the validator works and how to modify its code.
+3. [Back-end Developer Documentation](#3-back-end-developer-documentation) — how the validator works and how to modify its code.
 4. [File and Folder Structure](#4-file-and-folder-structure)
 5. [Summary of the Recommended Workflow](#5-summary-of-the-recommended-workflow)
 
