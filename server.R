@@ -380,13 +380,6 @@ server <- function(input, output, session) {
     )
     
     tagList(
-      h3("Dataset Specification"),
-      
-      p(
-        "The following describes the requirements for each variable ",
-        "in this dataset."
-      ),
-      
       lapply(fields, function(field) {
         
         field_name <- field$field
