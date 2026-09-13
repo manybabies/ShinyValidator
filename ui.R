@@ -22,7 +22,7 @@ config <- yaml::read_yaml(
 
 configuration_files <- list.files(
   "configuration",
-  pattern = "^config_.+\\.(yaml|yml)$",
+  pattern = "^config_.+\\.yaml$",
   full.names = FALSE
 )
 
@@ -44,11 +44,6 @@ configuration_choices <- setNames(
 if ("config_Default.yaml" %in% names(configuration_choices)) {
   configuration_choices["config_Default.yaml"] <- "Default"
 }
-
-if ("config_Default.yml" %in% names(configuration_choices)) {
-  configuration_choices["config_Default.yml"] <- "Default"
-}
-
 
 # UI styling -----------------------------------------------------------------------------
 
