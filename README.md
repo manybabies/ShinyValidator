@@ -17,6 +17,7 @@ This documentation is divided into five sections:
 3. [Back-end Developer Documentation](#3-back-end-developer-documentation) — how the validator works and how to modify its code.
 4. [File and Folder Structure](#4-file-and-folder-structure)
 5. [Summary of the Recommended Workflow](#5-summary-of-the-recommended-workflow)
+6. [Package and Version Control](#6-package-and-version-control)
 
 If you are simply creating a validator for your own project, you only need **Sections 1 and 2**.
 
@@ -1014,7 +1015,7 @@ The recommended workflow is:
 
 The **Configuration Creation** and **Specification Creation** functions are intended to handle most customization needs. Direct modification of `ui.R`, `server.R`, or `common.R` should generally only be necessary when adding functionality beyond the existing template.
 
-## Package and version control
+# 6. Package and version control
 
 This project uses [`renv`](https://rstudio.github.io/renv/) to keep track of the R version and package versions used by the validator.
 
