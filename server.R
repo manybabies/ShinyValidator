@@ -1079,6 +1079,35 @@ server <- function(input, output, session) {
     nVars <- input$numVars
     data_list <- list()
     
+    # Validate variable names ------------------------------------------------------------
+    
+    variable_names <- vapply(
+      seq_len(nVars),
+      function(i) {
+        
+        value <- input[[paste0("field_name_", i)]]
+        
+        if (is.null(value)) {
+          ""
+        } else {
+          trimws(value)
+        }
+      },
+      character(1)
+    )
+    
+    if (any(variable_names == "")) {
+      stop(
+        "Every variable must have a name."
+      )
+    }
+    
+    if (any(duplicated(variable_names))) {
+      stop(
+        "Variable names must be unique."
+      )
+    }
+    
     if (nVars > 0) {
       
       for (i in 1:nVars) {
@@ -1717,7 +1746,7 @@ server <- function(input, output, session) {
   })
   
   
-  # Download setup button
+  # Download setup button ---------------------------------------------------------------
   
   output$downloadSetupButton <- renderUI({
     
@@ -1726,6 +1755,31 @@ server <- function(input, output, session) {
     if (is.null(nVars) || nVars == 0) {
       return(NULL)
     }
+    
+    # Check variable names ---------------------------------------------------------------
+    
+    variable_names <- vapply(
+      seq_len(nVars),
+      function(i) {
+        
+        value <- input[[paste0("field_name_", i)]]
+        
+        if (is.null(value)) {
+          ""
+        } else {
+          trimws(value)
+        }
+      },
+      character(1)
+    )
+    
+    missing_variable_names <- any(
+      variable_names == ""
+    )
+    
+    duplicate_variable_names <- any(
+      duplicated(variable_names[variable_names != ""])
+    )
     
     all_examples_complete <- TRUE
     
@@ -1761,7 +1815,11 @@ server <- function(input, output, session) {
       }
     }
     
-    if (all_examples_complete) {
+    if (
+      !missing_variable_names &&
+      !duplicate_variable_names &&
+      all_examples_complete
+    ) {
       
       downloadButton(
         "downloadSetup",
@@ -1769,6 +1827,29 @@ server <- function(input, output, session) {
       )
       
     } else {
+      
+      error_messages <- character(0)
+      
+      if (missing_variable_names) {
+        error_messages <- c(
+          error_messages,
+          "Please enter a variable name for every variable."
+        )
+      }
+      
+      if (duplicate_variable_names) {
+        error_messages <- c(
+          error_messages,
+          "Variable names must be unique."
+        )
+      }
+      
+      if (!all_examples_complete) {
+        error_messages <- c(
+          error_messages,
+          "Please enter all five example values before downloading the setup."
+        )
+      }
       
       tagList(
         
@@ -1779,11 +1860,16 @@ server <- function(input, output, session) {
           "Download Setup"
         ),
         
-        tags$p(
-          tags$strong(
-            style = "color: red;",
-            "Please enter all five example values before downloading the setup."
-          )
+        lapply(
+          error_messages,
+          function(message) {
+            tags$p(
+              tags$strong(
+                style = "color: red;",
+                message
+              )
+            )
+          }
         )
       )
     }

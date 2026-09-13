@@ -32,7 +32,7 @@ configuration_files <- list.files(
 configuration_choices <- setNames(
   configuration_files,
   sub(
-    "^config_(.*)\\.(yaml|yml)$",
+    "^config_(.*)\\.yaml$",
     "\\1",
     configuration_files
   )
