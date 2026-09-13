@@ -79,8 +79,6 @@ server <- function(input, output, session) {
     
     files <- available_specifications()
     
-    req(length(files) > 0)
-    
     tibble(
       file = files,
       study = sub(
