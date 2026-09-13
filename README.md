@@ -1013,3 +1013,30 @@ The recommended workflow is:
 ```
 
 The **Configuration Creation** and **Specification Creation** functions are intended to handle most customization needs. Direct modification of `ui.R`, `server.R`, or `common.R` should generally only be necessary when adding functionality beyond the existing template.
+
+## Package and version control
+
+This project uses [`renv`](https://rstudio.github.io/renv/) to keep track of the R version and package versions used by the validator.
+
+The file `renv.lock` records the tested environment and should be committed to GitHub.
+
+### For developers
+
+Do not update packages in the main project environment without testing the application.
+
+If packages need to be updated:
+
+1. Create a Git branch.
+2. Update the required packages.
+3. Test all major validator functions locally.
+4. If everything works, run `renv::snapshot()` to update `renv.lock`.
+5. Commit the updated `renv.lock` together with the application changes.
+6. Deploy and test the updated application.
+
+If an update causes problems, the previous `renv.lock` can be restored from Git to return to the previous known-good environment.
+
+To recreate the project environment on a new computer, open the project in RStudio and run:
+
+```r
+renv::restore()
+```
