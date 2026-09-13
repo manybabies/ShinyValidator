@@ -1781,6 +1781,78 @@ server <- function(input, output, session) {
       duplicated(variable_names[variable_names != ""])
     )
     
+    # Check numeric ranges ----------------------------------------------------------------
+    
+    invalid_numeric_ranges <- FALSE
+    
+    for (i in seq_len(nVars)) {
+      
+      field_type <- input[[paste0("field_type_", i)]]
+      
+      if (
+        !is.null(field_type) &&
+        !is.na(field_type) &&
+        field_type == "numeric"
+      ) {
+        
+        range_required <- input[[paste0("range_req_", i)]]
+        
+        if (
+          identical(range_required, "yes")
+        ) {
+          
+          minimum <- input[[paste0("min_value_", i)]]
+          maximum <- input[[paste0("max_value_", i)]]
+          
+          if (
+            !is.null(minimum) &&
+            !is.null(maximum) &&
+            !is.na(minimum) &&
+            !is.na(maximum) &&
+            minimum > maximum
+          ) {
+            invalid_numeric_ranges <- TRUE
+          }
+        }
+      }
+    }
+    
+    # Check string length ranges ----------------------------------------------------------
+    
+    invalid_string_ranges <- FALSE
+    
+    for (i in seq_len(nVars)) {
+      
+      field_type <- input[[paste0("field_type_", i)]]
+      
+      if (
+        !is.null(field_type) &&
+        !is.na(field_type) &&
+        field_type == "string"
+      ) {
+        
+        range_required <- input[[paste0("range_req_string", i)]]
+        
+        if (
+          identical(range_required, "yes")
+        ) {
+          
+          minimum <- input[[paste0("min_value_s", i)]]
+          maximum <- input[[paste0("max_value_s", i)]]
+          
+          if (
+            !is.null(minimum) &&
+            !is.null(maximum) &&
+            !is.na(minimum) &&
+            !is.na(maximum) &&
+            minimum > maximum
+          ) {
+            invalid_string_ranges <- TRUE
+          }
+        }
+      }
+    }
+    
     all_examples_complete <- TRUE
     
     for (i in 1:nVars) {
@@ -1818,6 +1890,8 @@ server <- function(input, output, session) {
     if (
       !missing_variable_names &&
       !duplicate_variable_names &&
+      !invalid_numeric_ranges &&
+      !invalid_string_ranges &&
       all_examples_complete
     ) {
       
@@ -1841,6 +1915,20 @@ server <- function(input, output, session) {
         error_messages <- c(
           error_messages,
           "Variable names must be unique."
+        )
+      }
+      
+      if (invalid_numeric_ranges) {
+        error_messages <- c(
+          error_messages,
+          "Minimum value cannot be greater than maximum value."
+        )
+      }
+      
+      if (invalid_string_ranges) {
+        error_messages <- c(
+          error_messages,
+          "Minimum string length cannot be greater than maximum string length."
         )
       }
       
