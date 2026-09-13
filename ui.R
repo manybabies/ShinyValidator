@@ -41,12 +41,12 @@ configuration_choices <- setNames(
 
 ## Make the default configuration display as "Default"
 
-if ("config_default.yaml" %in% names(configuration_choices)) {
-  configuration_choices["config_default.yaml"] <- "Default"
+if ("config_Default.yaml" %in% names(configuration_choices)) {
+  configuration_choices["config_Default.yaml"] <- "Default"
 }
 
-if ("config_default.yml" %in% names(configuration_choices)) {
-  configuration_choices["config_default.yml"] <- "Default"
+if ("config_Default.yml" %in% names(configuration_choices)) {
+  configuration_choices["config_Default.yml"] <- "Default"
 }
 
 
