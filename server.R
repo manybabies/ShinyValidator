@@ -1192,7 +1192,9 @@ server <- function(input, output, session) {
             examples <- c(
               input[[paste0("example_1_", i)]],
               input[[paste0("example_2_", i)]],
-              input[[paste0("example_3_", i)]]
+              input[[paste0("example_3_", i)]],
+              input[[paste0("example_4_", i)]],
+              input[[paste0("example_5_", i)]]
             )
             
             GenerateRegex(examples)
