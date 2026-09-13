@@ -43,19 +43,24 @@ The validator contains four main functions, divided into two categories:
 
 To run the validator locally, you will need:
 
-* **R** (version 4.6.0 or later)
+* **R** (version 4.6.1)
 * **RStudio**
 
 The following R packages are required:
 
-* `tidyverse`
-* `shiny`
-* `shinythemes`
-* `DT`
-* `openxlsx`
-* `yaml`
+* `tidyverse` (version 2.0.0)
+* `shiny` (version 1.14.0)
+* `shinythemes` (version 1.2.0)
+* `DT` (version 0.34.0)
+* `openxlsx` (version 4.2.9)
+* `yaml` (version 2.3.12)
 
-If you want to deploy the validator to `shinyapps.io`, you will also need `rsconnect`.
+If you plan to deploy the validator to shinyapps.io, you will also need:
+
+* `rsconnect` (version 1.11.0)
+
+The exact package environment used by the validator is recorded in `renv.lock`. Running `renv::restore()` will install the versions specified in the lockfile.
+
 
 </details>
 
