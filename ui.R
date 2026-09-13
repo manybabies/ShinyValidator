@@ -4,53 +4,52 @@ library(DT)
 library(yaml)
 
 
-# Load shared functions ------------------------------------------------------------------
+# Packages and shared functions ----------------------------------------------------------
 
 source("common.R")
 
 
-# Load default and available configuration -----------------------------------------------
+# Configuration setup --------------------------------------------------------------------
 
-config <- yaml::read_yaml("configuration/config_Default.yaml")
+## Load default configuration
+
+config <- yaml::read_yaml(
+  "configuration/config_Default.yaml"
+)
+
+
+## Find available configurations
 
 configuration_files <- list.files(
   "configuration",
-  pattern = "^config_.+\\.(yaml|yml)$",
+  pattern = "^config_.+\\.yaml$",
   full.names = FALSE
 )
 
 
-# Display configuration names ------------------------------------------------------------
+## Create configuration display names
 
 configuration_choices <- setNames(
   configuration_files,
   sub(
-    "^config_(.*)\\.(yaml|yml)$",
+    "^config_(.*)\\.yaml$",
     "\\1",
     configuration_files
   )
 )
 
 
-# Make the default configuration display as "Default" -----------------------------------
+## Make the default configuration display as "Default"
 
-if ("config_default.yaml" %in% names(configuration_choices)) {
-  configuration_choices["config_default.yaml"] <- "Default"
+if ("config_Default.yaml" %in% names(configuration_choices)) {
+  configuration_choices["config_Default.yaml"] <- "Default"
 }
 
-if ("config_default.yml" %in% names(configuration_choices)) {
-  configuration_choices["config_default.yml"] <- "Default"
-}
+# UI styling -----------------------------------------------------------------------------
 
-
-# UI -------------------------------------------------------------------------------------
+theme <- shinythemes::shinytheme("spacelab")
 
 ui <- fluidPage(
-  
-  
-  # Styling -------------------------------------------------------------------------------
-  
-  theme = shinythemes::shinytheme("spacelab"),
   
   tags$head(
     tags$style(HTML("
@@ -251,23 +250,13 @@ ui <- fluidPage(
       }
       
       
-      /* Download Specification button text */
+      /* Download button text */
       
       #downloadSpecification span,
-      #downloadSpecification i {
-        color: #ffffff !important;
-      }
-      
-      
-      /* Download Configuration button text */
+      #downloadSpecification i,
       
       #downloadConfiguration span,
-      #downloadConfiguration i {
-        color: #ffffff !important;
-      }
-      
-      
-      /* Download Highlighted File button text */
+      #downloadConfiguration i,
       
       #downloadHighlighted span,
       #downloadHighlighted i {
@@ -481,7 +470,7 @@ ui <- fluidPage(
   ),
   
   
-  # Application title ---------------------------------------------------------------------
+  # Application header -------------------------------------------------------------------
   
   div(
     class = "app-title",
@@ -489,15 +478,17 @@ ui <- fluidPage(
   ),
   
   
-  # Sidebar -------------------------------------------------------------------------------
+  # Main layout ---------------------------------------------------------------------------
   
   sidebarLayout(
+    
+    ## Sidebar
     
     sidebarPanel(
       width = 3,
       
       
-      # Configuration selection ------------------------------------------------------------
+      ## Configuration selection
       
       selectInput(
         "configuration",
@@ -507,11 +498,14 @@ ui <- fluidPage(
       ),
       
       
-      # Study selection --------------------------------------------------------------------
+      ## Study and format selection
       
       uiOutput("study_selection"),
       
       uiOutput("study_format"),
+      
+      
+      ## Dataset upload
       
       fileInput(
         "file",
@@ -527,7 +521,7 @@ ui <- fluidPage(
       hr(),
       
       
-      # Navigation -------------------------------------------------------------------------
+      ## Navigation
       
       div(
         class = "navigation-menu",
@@ -547,13 +541,13 @@ ui <- fluidPage(
     ),
     
     
-    # Main panel ---------------------------------------------------------------------------
+    ## Main panel
     
     mainPanel(
       width = 9,
       
       
-      # Validation Results -----------------------------------------------------------------
+      ## Validation Results
       
       conditionalPanel(
         condition = "input.page == 'validation_results'",
@@ -592,7 +586,7 @@ ui <- fluidPage(
       ),
       
       
-      # Specification Details --------------------------------------------------------------
+      ## Specification Details
       
       conditionalPanel(
         condition = "input.page == 'specification'",
@@ -609,7 +603,7 @@ ui <- fluidPage(
       ),
       
       
-      # Specification Creation -------------------------------------------------------------
+      ## Specification Creation
       
       conditionalPanel(
         condition = "input.page == 'specification_creation'",
@@ -648,7 +642,7 @@ ui <- fluidPage(
       ),
       
       
-      # Configuration Creation -------------------------------------------------------------
+      ## Configuration Creation
       
       conditionalPanel(
         condition = "input.page == 'configuration_creation'",
@@ -683,7 +677,6 @@ ui <- fluidPage(
           } else {
             label.textContent = event.target.value;
           }
-          
         }
       }
       
@@ -703,7 +696,6 @@ ui <- fluidPage(
           } else {
             heading.textContent = event.target.value;
           }
-          
         }
       }
       
@@ -725,7 +717,6 @@ ui <- fluidPage(
             } else {
               heading.textContent = event.target.value;
             }
-            
           }
         }
       }

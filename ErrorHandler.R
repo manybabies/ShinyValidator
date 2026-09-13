@@ -5,6 +5,9 @@ library(openxlsx)
 
 highlight_csv_to_xlsx <- function(df, issues) {
   
+  
+  # Workbook setup ----------------------------------------------------------------------
+  
   wb <- createWorkbook()
   
   data_sheet <- "Data"
@@ -94,7 +97,6 @@ highlight_csv_to_xlsx <- function(df, issues) {
     wb,
     error_sheet
   )
-  
   
   error_rows <- list()
   
