@@ -29,6 +29,34 @@ validate_dataset <- function(fields, dataset_contents) {
   
   issues <- list()
   
+  # Check for unexpected columns
+  
+  specified_columns <- vapply(
+    fields,
+    function(field) {
+      as.character(field$field)
+    },
+    character(1)
+  )
+  
+  unexpected_columns <- setdiff(
+    names(dataset_contents),
+    specified_columns
+  )
+  
+  if (length(unexpected_columns) > 0) {
+    
+    for (column in unexpected_columns) {
+      
+      issues[[length(issues) + 1]] <- list(
+        type = "unexpected_column",
+        column = column,
+        invalid_value = NA,
+        invalid_row = integer(0)
+      )
+    }
+  }
+  
   # Check for missing columns
   
   for (field in fields) {
@@ -706,6 +734,13 @@ explain_error <- function(issue, fields) {
     return(as.character(error_message))
   }
   
+  # Unexpected column
+  
+  if (issue$type == "unexpected_column") {
+    return(
+      "This column is not included in the dataset specification."
+    )
+  }
   
   # Missing column
   

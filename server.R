@@ -865,14 +865,17 @@ server <- function(input, output, session) {
       row_errors <- list()
       
       
-      # Missing required columns
+      # Column errors
       
       for (issue in issues) {
         
-        if (
-          !is.null(issue) &&
-          issue$type == "missing_column"
-        ) {
+        if (is.null(issue)) {
+          next
+        }
+        
+        # Missing required columns
+        
+        if (issue$type == "missing_column") {
           
           row_errors[[length(row_errors) + 1]] <- tags$p(
             style = "color: red;",
@@ -891,6 +894,27 @@ server <- function(input, output, session) {
                 explain_error(issue, fields),
                 ")"
               )
+            )
+          )
+        }
+        
+        # Unexpected columns
+        
+        if (issue$type == "unexpected_column") {
+          
+          row_errors[[length(row_errors) + 1]] <- tags$p(
+            style = "color: red;",
+            
+            paste0(
+              "Unexpected column: '",
+              issue$column,
+              "'."
+            ),
+            
+            tags$br(),
+            
+            tags$span(
+              "(This column does not exist in the selected specification.)"
             )
           )
         }
@@ -1036,6 +1060,29 @@ server <- function(input, output, session) {
                   explain_error(issue, fields),
                   ")"
                 )
+              )
+            )
+          )
+        }
+        
+        # Unexpected columns
+        
+        if (issue$type == "unexpected_column") {
+          
+          return(
+            tags$p(
+              style = "color: red;",
+              
+              paste0(
+                "Unexpected column: '",
+                issue$column,
+                "'."
+              ),
+              
+              tags$br(),
+              
+              tags$span(
+                "(This column does not exist in the selected specification.)"
               )
             )
           )
