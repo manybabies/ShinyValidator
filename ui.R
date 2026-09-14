@@ -168,6 +168,7 @@ ui <- fluidPage(
         max-height: 100px;
         width: auto;
         height: auto;
+        object-fit: contain;
       }
       
       
@@ -232,6 +233,45 @@ ui <- fluidPage(
         max-height: 100px;
         width: auto;
         height: auto;
+      }
+      
+      
+      /* Configuration creation layout */
+      
+      .configuration-option-row {
+        display: flex;
+        align-items: flex-start;
+        margin-left: -15px;
+        margin-right: -15px;
+      }
+      
+      .configuration-option-column {
+        width: 50%;
+        padding-left: 15px;
+        padding-right: 15px;
+      }
+      
+      
+      /* Configuration logo preview */
+      
+      .configuration-logo-preview {
+        min-height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+        margin-top: 5px;
+        border: 1px solid #DDDDDD;
+        border-radius: 8px;
+        background-color: #FAFAFA;
+      }
+      
+      .configuration-logo-preview img {
+        max-width: 100%;
+        max-height: 120px;
+        width: auto;
+        height: auto;
+        object-fit: contain;
       }
       
       
@@ -567,6 +607,14 @@ ui <- fluidPage(
         .validation-error-cell,
         .validation-explanation-cell {
           border-top: 1px solid #E0E0E0;
+        }
+        
+        .configuration-option-row {
+          display: block;
+        }
+        
+        .configuration-option-column {
+          width: 100%;
         }
       }
       
@@ -1191,19 +1239,6 @@ ui <- fluidPage(
       
       
       if (event.target.id === 'text_size_small') {
-        
-        document.body.classList.remove(
-          'text-size-xsmall',
-          'text-size-default',
-          'text-size-large',
-          'text-size-xlarge'
-        );
-        
-        document.body.classList.add('text-size-small');
-      }
-      
-      
-      if (event.target.id === 'text_size_default') {
         
         document.body.classList.remove(
           'text-size-xsmall',
