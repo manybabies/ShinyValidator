@@ -14,6 +14,12 @@ source("ErrorHandler.R")
 
 config <- yaml::read_yaml("configuration/config_Default.yaml")
 
+# Logo resource path ---------------------------------------------------------------------
+
+addResourcePath(
+  "logos",
+  "logos"
+)
 
 # Server --------------------------------------------------------------------------------
 
@@ -81,6 +87,26 @@ server <- function(input, output, session) {
         input$configuration
       )
     )
+  })
+  
+  # Selected logo
+  
+  output$application_logo <- renderUI({
+    
+    if (
+      isTRUE(config$logo$enabled) &&
+      !is.null(config$logo$file)
+    ) {
+      
+      tags$img(
+        src = file.path(
+          "logos",
+          config$logo$file
+        ),
+        class = "validator-logo"
+      )
+      
+    }
   })
   
   
