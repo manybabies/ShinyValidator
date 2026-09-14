@@ -17,6 +17,7 @@ This documentation is divided into five sections:
 3. [Back-end Developer Documentation](#3-back-end-developer-documentation) — how the validator works and how to modify its code.
 4. [File and Folder Structure](#4-file-and-folder-structure)
 5. [Summary of the Recommended Workflow](#5-summary-of-the-recommended-workflow)
+6. [Package and Version Control](#6-package-and-version-control)
 
 If you are simply creating a validator for your own project, you only need **Sections 1 and 2**.
 
@@ -43,19 +44,24 @@ The validator contains four main functions, divided into two categories:
 
 To run the validator locally, you will need:
 
-* **R** (version 4.6.0 or later)
+* **R** (version 4.6.1)
 * **RStudio**
 
 The following R packages are required:
 
-* `tidyverse`
-* `shiny`
-* `shinythemes`
-* `DT`
-* `openxlsx`
-* `yaml`
+* `tidyverse` (version 2.0.0)
+* `shiny` (version 1.14.0)
+* `shinythemes` (version 1.2.0)
+* `DT` (version 0.34.0)
+* `openxlsx` (version 4.2.9)
+* `yaml` (version 2.3.12)
 
-If you want to deploy the validator to `shinyapps.io`, you will also need `rsconnect`.
+If you plan to deploy the validator to shinyapps.io, you will also need:
+
+* `rsconnect` (version 1.11.0)
+
+The exact package environment used by the validator is recorded in `renv.lock`. Running `renv::restore()` will install the versions specified in the lockfile.
+
 
 </details>
 
@@ -1013,3 +1019,30 @@ The recommended workflow is:
 ```
 
 The **Configuration Creation** and **Specification Creation** functions are intended to handle most customization needs. Direct modification of `ui.R`, `server.R`, or `common.R` should generally only be necessary when adding functionality beyond the existing template.
+
+# 6. Package and version control
+
+This project uses [`renv`](https://rstudio.github.io/renv/) to keep track of the R version and package versions used by the validator.
+
+The file `renv.lock` records the tested environment and should be committed to GitHub.
+
+### For developers
+
+Do not update packages in the main project environment without testing the application.
+
+If packages need to be updated:
+
+1. Create a Git branch.
+2. Update the required packages.
+3. Test all major validator functions locally.
+4. If everything works, run `renv::snapshot()` to update `renv.lock`.
+5. Commit the updated `renv.lock` together with the application changes.
+6. Deploy and test the updated application.
+
+If an update causes problems, the previous `renv.lock` can be restored from Git to return to the previous known-good environment.
+
+To recreate the project environment on a new computer, open the project in RStudio and run:
+
+```r
+renv::restore()
+```
