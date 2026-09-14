@@ -89,7 +89,9 @@ The **Validation Results** function is the primary way to validate a dataset.
    * column; or
    * row.
 
-7. **Download a highlighted file** by clicking *Download Highlighted File*. This produces an Excel file containing the original dataset with invalid cells highlighted, along with an **Error Log** describing the detected errors.
+7. You can **directly edit your dataset** using the preview table displayed in the app. The validator will check your edits in real-time and remove highlight if errors no longer persist.
+   
+8. **Download an edited and highlighted file** by clicking *Download Edited & Highlighted File*. This produces an Excel file containing the original dataset with invalid cells highlighted, along with an **Error Log** describing the detected errors. This downloaded copy will also preserve any edits made in the data table display.
 
 The available studies and formats depend on the specifications associated with the selected configuration.
 
