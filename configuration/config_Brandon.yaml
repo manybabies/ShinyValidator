@@ -1,0 +1,19 @@
+theme: blue
+app_title: brandon woo pilot testing
+logo:
+  enabled: yes
+  file: lablogo.png
+  width: 180px
+welcome_message: We'll use this to validate formatting for data from our lab
+secondary_message: Please reach out if you have any questions
+instruction_set_1_name: Instruction Set 1
+instruction_set_1: []
+links:
+- text: Lab website
+  url: https://folk.psych.ucsb.edu/
+- text: Example link to ShinyValidator GitHub
+  url: https://github.com/manybabies/ShinyValidator
+instruction_set_2_name: Instruction Set 2
+instruction_set_2: []
+specification_message: This is the human-readable version of the specification you
+  have chosen.
