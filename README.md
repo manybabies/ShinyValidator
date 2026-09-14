@@ -1,5 +1,9 @@
 # ShinyValidator
 
+Current version: 2.0.1 (Sept 13, 2026)
+
+See the [Changelog](changelog.md) for a history of updates.
+
 ShinyValidator is a customizable tool for checking research datasets against predefined data specifications. Upload a CSV to identify common data-entry errors, such as missing columns, invalid values, and formatting issues, and download a highlighted Excel file to help locate and correct them.
 
 ShinyValidator is designed as a template that can be adapted to the requirements of your own project. Importantly, the tool was designed to *minimize the need to interface with R*, such that users with minimal R knowledge can nonetheless adapt the validator with ease.
