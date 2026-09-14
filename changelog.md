@@ -4,6 +4,7 @@
 
 ### Added
 
+- Added feature: Editable data table display and downloadable edited dataset
 - Added text-size accessibility controls.
 - Added Error Summary view.
 - Various bug fixes to improve overall robustness
