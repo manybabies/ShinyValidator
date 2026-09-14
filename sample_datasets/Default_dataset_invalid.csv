@@ -12,10 +12,10 @@ demo2026a,control,4,675.9,ST,P0010,10,yes,session10,ST10,1
 demo2026a,experimental,5,334.68,UV,P0011,11,unknown,session11,UV11,1
 demo2026a,familiar,3,902.43,WX,P0012,12,no,sess,WX12,1
 demo2026a,control,5,478.25,YZ,P0013,yes,13,yes,session13,YZ13
-demo2026a,experimental,3,721.1,AC,P0014,14,no,session14,AC14,
-demo2026a,familiar,4,356.7,BD,P0015,15,unknown,session15,BD15,
-demo2026a,control,5,599.311,CE,P0016,16,yes,session16,CE16,
-demo2026a,experimental,4,844.57,D,P0017,17,no,session17,DF17,
-demo2026a,familiar,3,467.89,EG,P0018,18,yes,session18,EG18,
-demo2026a,control,4,703.44,FH,P123,19,unknown,session19,FH19,
-,experimental,5,315.62,GI,P0020,20,no,session20,GI20,
+demo2026a,experimental,3,721.1,AC,P0014,14,no,session14,AC14,NA
+demo2026a,familiar,4,356.7,BD,P0015,15,unknown,session15,BD15,NA
+demo2026a,control,5,599.311,CE,P0016,16,yes,session16,CE16,NA
+demo2026a,experimental,4,844.57,D,P0017,17,no,session17,DF17,NA
+demo2026a,familiar,3,467.89,EG,P0018,18,yes,session18,EG18,NA
+demo2026a,control,4,703.44,FH,P123,19,unknown,session19,FH19,NA
+NA,experimental,5,315.62,GI,P0020,20,no,session20,GI20,NA
