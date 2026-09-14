@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.2] - 2026-09-14
+
+- Added feature: custom logo and associated upload functions
+
 ## [2.0.1] - 2026-09-13
 
 ### Added

@@ -1,6 +1,6 @@
 # ShinyValidator
 
-Current version: 2.0.1 (Sept 13, 2026)
+Current version: 2.0.2 (Sept 14, 2026)
 
 See the [Changelog](changelog.md) for a history of updates.
 
@@ -168,6 +168,7 @@ The **Configuration Creation** function allows you to customize the validator wi
 Configuration Creation can be used to define:
 
 * the application title;
+* a custom logo;
 * the welcome message;
 * a secondary message;
 * the name and contents of **Instruction Set 1**;
@@ -178,6 +179,8 @@ Configuration Creation can be used to define:
 The names of the instruction sets are customizable. For example, instead of calling the first section *Instruction Set 1*, a project could call it **Getting Started** or **Before You Begin**.
 
 Similarly, the second section could be renamed to something such as **Upload Instructions** or **Data Submission Instructions**.
+
+A custom logo can also be enabled and uploaded through **Configuration Creation**. The uploaded image is saved automatically to the `logos` folder using its original filename, and the filename is automatically recorded in the generated configuration.
 
 Once the configuration is complete, click **Download Configuration** to download the YAML configuration file.
 
@@ -321,6 +324,7 @@ The following table summarizes the main customization options:
 | Interface element          | Recommended method     | What can be changed                                |
 | -------------------------- | ---------------------- | -------------------------------------------------- |
 | **Application title**      | Configuration Creation | Application name displayed at the top              |
+| **Custom logo**            | Configuration Creation | Upload and display a project logo                  |
 | **Welcome message**        | Configuration Creation | Main introductory message                          |
 | **Secondary message**      | Configuration Creation | Additional introductory text                       |
 | **Instruction Set 1**      | Configuration Creation | Section name and instructions                      |
@@ -485,6 +489,7 @@ The configuration creator allows you to specify:
 ### Application information
 
 * Application title
+* Custom logo
 * Welcome message
 * Secondary message
 
@@ -526,6 +531,8 @@ config_ManyBabies.yaml
 ```
 
 The project name is then used to associate the configuration with its corresponding data specifications.
+
+If a custom logo is enabled, the uploaded image is saved in the project's `logos/` folder. The configuration YAML records the logo filename so that the image can be displayed when that configuration is selected.
 
 </details>
 
