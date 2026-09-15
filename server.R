@@ -1278,8 +1278,23 @@ server <- function(input, output, session) {
     
     fields <- yaml::yaml.load_file(yaml_file_path)
     
-    df <- readr::read_csv(
+    delimiter <- detect_delimiter(
+      input$file$datapath
+    )
+    
+    req(!is.null(delimiter))
+    
+    decimal_mark <- detect_decimal_mark(
       input$file$datapath,
+      delimiter
+    )
+    
+    df <- readr::read_delim(
+      input$file$datapath,
+      delim = delimiter,
+      locale = readr::locale(
+        decimal_mark = decimal_mark
+      ),
       show_col_types = FALSE
     )
     
@@ -3229,14 +3244,30 @@ server <- function(input, output, session) {
     
     req(input$file)
     
-    df <- readr::read_csv(
+    delimiter <- detect_delimiter(
+      input$file$datapath
+    )
+    
+    req(!is.null(delimiter))
+    
+    decimal_mark <- detect_decimal_mark(
       input$file$datapath,
+      delimiter
+    )
+    
+    df <- readr::read_delim(
+      input$file$datapath,
+      delim = delimiter,
+      locale = readr::locale(
+        decimal_mark = decimal_mark
+      ),
       show_col_types = FALSE
     )
     
     edited_data(df)
     
   })
+
   
   # Store table edits
   
