@@ -3190,7 +3190,7 @@ server <- function(input, output, session) {
       
       tryCatch(
         {
-          highlight_csv_to_xlsx(
+          highlight_csv_to_xlsx_v2(
             df,
             issues,
             file
@@ -3205,6 +3205,43 @@ server <- function(input, output, session) {
             )
           )
         }
+      )
+    }
+  )
+  
+  # Download standardized validated CSV
+  
+  output$downloadCSV <- downloadHandler(
+    
+    filename = function() {
+      paste0(
+        "validated_dataset_",
+        Sys.Date(),
+        ".csv"
+      )
+    },
+    
+    contentType = "text/csv",
+    
+    content = function(file) {
+      
+      # Get edited dataset
+      
+      df <- edited_data()
+      
+      if (is.null(df)) {
+        stop(
+          "The edited dataset is not available. ",
+          "Please upload a dataset before attempting to download."
+        )
+      }
+      
+      # Write standardized CSV
+      
+      readr::write_csv(
+        df,
+        file,
+        na = ""
       )
     }
   )

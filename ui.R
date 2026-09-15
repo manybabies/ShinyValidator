@@ -1052,7 +1052,12 @@ ui <- fluidPage(
           
           downloadButton(
             "downloadHighlighted",
-            "Download Edited & Highlighted File"
+            "Download Edited & Highlighted Excel File"
+          ),
+          
+          downloadButton(
+            "downloadCSV",
+            "Download Validated CSV File"
           ),
           
           br(),

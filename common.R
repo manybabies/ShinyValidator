@@ -190,7 +190,7 @@ validate_dataset <- function(fields, dataset_contents) {
 
 # Create highlighted Excel file
 
-highlight_csv_to_xlsx <- function(df, issues, file) {
+highlight_csv_to_xlsx_v2 <- function(df, issues, file) {
   
   workbook <- openxlsx::createWorkbook()
   
