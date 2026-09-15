@@ -1,6 +1,6 @@
 # ShinyValidator
 
-Current version: 2.0.2 (Sept 14, 2026)
+Current version: 2.0.3 (Sept 15, 2026)
 
 See the [Changelog](changelog.md) for a history of updates.
 
@@ -91,7 +91,9 @@ The **Validation Results** function is the primary way to validate a dataset.
 
 7. You can **directly edit your dataset** using the preview table displayed in the app. The validator will check your edits in real-time and remove highlight if errors no longer persist.
    
-8. **Download an edited and highlighted file** by clicking *Download Edited & Highlighted File*. This produces an Excel file containing the original dataset with invalid cells highlighted, along with an **Error Log** describing the detected errors. This downloaded copy will also preserve any edits made in the data table display.
+8. **Download an edited and highlighted file** by clicking *Download Edited & Highlighted Excel File*. This produces an Excel file containing the original dataset with invalid cells highlighted, along with an **Error Log** describing the detected errors. This downloaded copy will also preserve any edits made in the data table display.
+
+9. Once your data passes validation, the **Download Validated CSV File** button will appear for you to download a standardized .csv for submission.
 
 The available studies and formats depend on the specifications associated with the selected configuration.
 

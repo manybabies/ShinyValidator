@@ -3246,6 +3246,7 @@ server <- function(input, output, session) {
     }
   )
   
+
   # Editable dataset
   
   edited_data <- reactiveVal(NULL)
@@ -3278,6 +3279,48 @@ server <- function(input, output, session) {
     
   })
 
+  # Check whether edited dataset is valid
+  
+  dataset_is_valid <- reactive({
+    
+    req(edited_data())
+    req(input$study, input$format)
+    
+    yaml_file_path <- paste0(
+      "data_specifications/",
+      selected_configuration_name(),
+      "_",
+      input$study,
+      "_",
+      input$format,
+      ".yaml"
+    )
+    
+    req(file.exists(yaml_file_path))
+    
+    fields <- yaml::yaml.load_file(
+      yaml_file_path
+    )
+    
+    validated <- validate_dataset(
+      fields,
+      edited_data()
+    )
+    
+    validated[[1]]
+  })
+  
+  # Show CSV download only when dataset is valid
+  
+  output$csv_validated <- reactive({
+    dataset_is_valid()
+  })
+  
+  outputOptions(
+    output,
+    "csv_validated",
+    suspendWhenHidden = FALSE
+  )
   
   # Store table edits
   

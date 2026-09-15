@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.0.3] - 2026-09-15
+
+- Improved robustness; validator now accepts different delimiters and European decimal system
+- Differentiated between "Download Highlighted Excel File" and "Download Validated CSV File"
+
 ## [2.0.2] - 2026-09-14
 
 - Added feature: custom logo and associated upload functions
