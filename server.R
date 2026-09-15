@@ -3137,8 +3137,7 @@ server <- function(input, output, session) {
     }
   )
   
-  
-  # Download edited dataset
+  # Download edited dataset as Excel
   
   output$downloadHighlighted <- downloadHandler(
     
@@ -3146,33 +3145,21 @@ server <- function(input, output, session) {
       paste0(
         "edited_dataset_",
         Sys.Date(),
-        ".csv"
+        ".xlsx"
       )
     },
     
-    contentType = "text/csv",
-    
     content = function(file) {
       
-      # Check uploaded file
+      df <- edited_data()
       
-      if (
-        is.null(input$file) ||
-        is.null(input$file$datapath) ||
-        input$file$datapath == ""
-      ) {
+      if (is.null(df)) {
         stop(
-          "No file provided. Please upload a dataset before attempting to download."
+          "The edited dataset is not available."
         )
       }
       
-      
-      # Check study and format
-      
       req(input$study, input$format)
-      
-      
-      # Find YAML specification
       
       yaml_file_path <- paste0(
         "data_specifications/",
@@ -3186,50 +3173,36 @@ server <- function(input, output, session) {
       
       if (!file.exists(yaml_file_path)) {
         stop(
-          "The corresponding YAML specification file does not exist. ",
-          "Please check your study and format selection."
+          "The corresponding YAML specification file does not exist."
         )
       }
       
-      
-      # Load YAML specification
-      
-      fields <- tryCatch(
-        yaml::yaml.load_file(yaml_file_path),
-        error = function(e) {
-          stop(
-            "Failed to load YAML file. ",
-            "Please ensure the file is valid and accessible."
-          )
-        }
+      fields <- yaml::yaml.load_file(
+        yaml_file_path
       )
       
+      validated <- validate_dataset(
+        fields,
+        df
+      )
       
-      # Get edited dataset
-      
-      df <- edited_data()
-      
-      if (is.null(df)) {
-        stop(
-          "The edited dataset is not available. ",
-          "Please upload a dataset before attempting to download."
-        )
-      }
-      
-      
-      # Download edited dataset
+      issues <- validated[[2]]
       
       tryCatch(
         {
-          readr::write_csv(
+          highlight_csv_to_xlsx(
             df,
+            issues,
             file
           )
         },
         error = function(e) {
+          print(e)
           stop(
-            "Failed to save the edited dataset: ",
-            e$message
+            paste0(
+              "Excel creation failed: ",
+              e$message
+            )
           )
         }
       )

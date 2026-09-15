@@ -1,5 +1,6 @@
 library(tidyverse)
 library(stringr)
+library(openxlsx)
 
 
 # Load available studies ---------------------------------------------------------------
@@ -187,6 +188,72 @@ validate_dataset <- function(fields, dataset_contents) {
   )
 }
 
+# Create highlighted Excel file
+
+highlight_csv_to_xlsx <- function(df, issues, file) {
+  
+  workbook <- openxlsx::createWorkbook()
+  
+  openxlsx::addWorksheet(
+    workbook,
+    "Validated Dataset"
+  )
+  
+  openxlsx::writeData(
+    workbook,
+    "Validated Dataset",
+    df
+  )
+  
+  # Create highlight style
+  
+  invalid_style <- openxlsx::createStyle(
+    fgFill = "#FFFF00"
+  )
+  
+  # Highlight invalid cells
+  
+  for (issue in issues) {
+    
+    if (
+      is.null(issue) ||
+      issue$type != "invalid_cell"
+    ) {
+      next
+    }
+    
+    column_name <- issue$column
+    rows <- as.integer(issue$invalid_row)
+    
+    if (
+      column_name %in% names(df) &&
+      length(rows) > 0
+    ) {
+      
+      column_index <- which(
+        names(df) == column_name
+      )
+      
+      openxlsx::addStyle(
+        workbook,
+        "Validated Dataset",
+        style = invalid_style,
+        rows = rows + 1,
+        cols = column_index,
+        gridExpand = TRUE,
+        stack = TRUE
+      )
+    }
+  }
+  
+  # Save Excel file
+  
+  openxlsx::saveWorkbook(
+    workbook,
+    file,
+    overwrite = TRUE
+  )
+}
 
 # Validate a field ----------------------------------------------------------------------
 
