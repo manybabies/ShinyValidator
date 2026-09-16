@@ -7,3 +7,8 @@
 renv/library/
 renv/local/
 renv/sandbox/
+
+# Local admin files
+/data_specifications/Admin_stresstest_stresstest.yaml
+/sample_datasets/stresstest.csv
+/configuration/config_Admin.yaml
