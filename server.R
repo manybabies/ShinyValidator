@@ -3059,10 +3059,42 @@ server <- function(input, output, session) {
         
         data <- userData()
         
+        # Write YAML to a temporary file first
+        temp_file <- tempfile(fileext = ".yaml")
+        
         yaml::write_yaml(
           data,
-          file
+          temp_file
         )
+        
+        # Read the YAML as text
+        yaml_text <- readLines(
+          temp_file,
+          warn = FALSE
+        )
+        
+        # Quote option values that YAML could interpret as logical values
+        yaml_text <- gsub(
+          "^([[:space:]]*- )[Yy][Ee][Ss]$",
+          '\\1"yes"',
+          yaml_text
+        )
+        
+        yaml_text <- gsub(
+          "^([[:space:]]*- )[Nn][Oo]$",
+          '\\1"no"',
+          yaml_text
+        )
+        
+        # Write the modified YAML to the requested download file
+        writeLines(
+          yaml_text,
+          file,
+          useBytes = TRUE
+        )
+        
+        # Clean up temporary file
+        unlink(temp_file)
         
       }, error = function(e) {
         
