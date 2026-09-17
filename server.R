@@ -1296,6 +1296,7 @@ server <- function(input, output, session) {
       locale = readr::locale(
         decimal_mark = decimal_mark
       ),
+      na = "NA",
       show_col_types = FALSE
     )
     
@@ -3272,6 +3273,7 @@ server <- function(input, output, session) {
       locale = readr::locale(
         decimal_mark = decimal_mark
       ),
+      na = "NA",
       show_col_types = FALSE
     )
     
