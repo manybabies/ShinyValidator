@@ -1972,6 +1972,32 @@ server <- function(input, output, session) {
   
   # Specification creation ---------------------------------------------------------------
   
+  # Creating from template
+  
+  template_columns <- reactiveVal(NULL)
+  
+  observeEvent(input$template_file, {
+    req(input$template_file)
+    
+    template <- readr::read_csv(
+      input$template_file$datapath,
+      n_max = 0,
+      show_col_types = FALSE
+    )
+    
+    columns <- names(template)
+    
+    template_columns(columns)
+    
+    updateNumericInput(
+      session,
+      "numVars",
+      value = length(columns)
+    )
+  })
+  
+  
+  
   # User-created specification
   
   userData <- reactive({
@@ -2203,7 +2229,14 @@ server <- function(input, output, session) {
       
       title = tags$span(
         id = paste0("tab_label_", i),
-        paste("Variable", i)
+        if (
+          !is.null(template_columns()) &&
+          length(template_columns()) >= i
+        ) {
+          template_columns()[i]
+        } else {
+          paste("Variable", i)
+        }
       ),
       
       value = paste0("variable_", i),
@@ -2219,7 +2252,15 @@ server <- function(input, output, session) {
           
           textInput(
             paste0("field_name_", i),
-            "Variable/column name:"
+            "Variable/column name:",
+            value = if (
+              !is.null(template_columns()) &&
+              length(template_columns()) >= i
+            ) {
+              template_columns()[i]
+            } else {
+              ""
+            }
           ),
           
           textInput(
@@ -2548,6 +2589,7 @@ server <- function(input, output, session) {
     
     current_num_vars(new_num_vars)
   })
+  
   
   
   # Generate option inputs
