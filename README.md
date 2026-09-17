@@ -1,6 +1,6 @@
 # ShinyValidator
 
-Current version: 2.0.3 (Sept 15, 2026)
+Current version: 2.0.4 (Sept 17, 2026)
 
 See the [Changelog](changelog.md) for a history of updates.
 
