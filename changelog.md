@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.4] - 2026-09-17
+
+- Fix: issue where NA values were being replaced with blank cells
+- Fix: Cells not being properly highlighted under some conditions
+- Added: Option in "Specification Creation" to upload a template dataset (only variable name extracted)
+- Added: Option to delete variables in "Specification Creation"
+
 ## [2.0.3] - 2026-09-15
 
 - Improved robustness; validator now accepts different delimiters and European decimal system

@@ -140,7 +140,11 @@ The specific checks performed depend on the data specification.
 
 The **Specification Creation** function allows users to create a YAML data specification without manually writing YAML code.
 
-Start by entering the number of variables required in the specification. The validator will then generate an interface for defining each variable.
+You have two options for initiating the specification creation:
+
+1. Entering the number of variables required in the specification. The validator will then generate an interface for defining each variable.
+
+2. Upload a sample/template dataset. The validator will extract the column names, and generate an interface for you to provide further specification.
 
 For each variable, you can specify:
 
