@@ -1022,6 +1022,7 @@ server <- function(input, output, session) {
   })
   
   
+  
   # Validation ---------------------------------------------------------------------------
   
   # Specification
@@ -2505,7 +2506,6 @@ server <- function(input, output, session) {
     )
   }
   
-  
   # Manage variable tabs
   
   current_num_vars <- reactiveVal(0)
@@ -2559,7 +2559,7 @@ server <- function(input, output, session) {
       return()
     }
     
-    for (i in 1:nVars) {
+    for (i in seq_len(nVars)) {
       
       local({
         
@@ -2573,18 +2573,18 @@ server <- function(input, output, session) {
             return(NULL)
           }
           
-          lapply(1:n_options, function(k) {
+          lapply(seq_len(n_options), function(k) {
             
             textInput(
               paste0("option_", k, "_", j),
-              paste0("Option ", k, ":")
+              paste0("Option ", k, ":"),
+              value = input[[paste0("option_", k, "_", j)]]
             )
           })
         })
       })
     }
   })
-  
   
   # Validate example inputs
   
