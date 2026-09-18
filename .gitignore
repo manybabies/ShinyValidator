@@ -17,3 +17,5 @@ renv/sandbox/
 # Key generation
 key_generation.R
 
+# rsconnect deployment files
+rsconnect/
