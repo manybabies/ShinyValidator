@@ -6,6 +6,7 @@
 - Fix: Cells not being properly highlighted under some conditions
 - Added: Option in "Specification Creation" to upload a template dataset (only variable name extracted)
 - Added: Option to delete variables in "Specification Creation"
+- Added: Generate sample dataset function
 
 ## [2.0.3] - 2026-09-15
 
