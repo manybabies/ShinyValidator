@@ -388,7 +388,13 @@ ui <- fluidPage(
       #downloadConfiguration:hover,
       #downloadConfiguration:focus,
       #downloadConfiguration:active,
-      #downloadConfiguration:visited {
+      #downloadConfiguration:visited,
+      
+      #downloadSampleDataset,
+      #downloadSampleDataset:hover,
+      #downloadSampleDataset:focus,
+      #downloadSampleDataset:active,
+      #downloadSampleDataset:visited {
         background-color: var(--theme-accent) !important;
         background-image: none !important;
         border-color: var(--theme-accent) !important;
@@ -404,7 +410,10 @@ ui <- fluidPage(
       #downloadSpecification:focus,
       
       #downloadConfiguration:hover,
-      #downloadConfiguration:focus {
+      #downloadConfiguration:focus,
+      
+      #downloadSampleDataset:hover,
+      #downloadSampleDataset:focus {
         background-color: var(--theme-accent-dark) !important;
         border-color: var(--theme-accent-dark) !important;
         color: #FFFFFF !important;
@@ -422,7 +431,10 @@ ui <- fluidPage(
       #downloadConfiguration i,
       
       #downloadHighlighted span,
-      #downloadHighlighted i {
+      #downloadHighlighted i,
+      
+      #downloadSampleDataset span,
+      #downloadSampleDataset i {
         color: #FFFFFF !important;
       }
       
@@ -1063,6 +1075,11 @@ ui <- fluidPage(
               "downloadCSV",
               "Download Validated CSV File"
             )
+          ),
+          
+          downloadButton(
+            "downloadSampleDataset",
+            "Generate Sample Dataset"
           ),
           
           br(),
