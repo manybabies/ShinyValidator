@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.5] - 2026-09-18
+
+- Added: auto file name generation for downloading validated csv file
+- Added: authentication code to validated csv file names
+- Added: server-side only secret key to check authenticity of code
+- This added function ensures that submitted files have passed validation, and have not been tampered post-validation
+
 ## [2.0.4] - 2026-09-17
 
 - Fix: issue where NA values were being replaced with blank cells

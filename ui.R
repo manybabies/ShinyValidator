@@ -104,6 +104,7 @@ ui <- fluidPage(
         --theme-accent: #007C83;
         --theme-accent-light: #E4F3F3;
         --theme-accent-dark: #00565B;
+        --theme-theme-accent-dark: #00565B;
         --theme-banner-start: #D7EEEE;
         --theme-banner-end: #E4F3F3;
         --theme-border: #C5DEDF;
@@ -1057,7 +1058,8 @@ ui <- fluidPage(
           
           conditionalPanel(
             condition = "output.csv_validated",
-            downloadButton(
+            
+            actionButton(
               "downloadCSV",
               "Download Validated CSV File"
             )
@@ -1225,17 +1227,16 @@ ui <- fluidPage(
         
         if (heading) {
           
-          if (heading) {
-            
-            if (event.target.value.trim() === '') {
-              heading.textContent = 'Instruction Set 2';
-            } else {
-              heading.textContent = event.target.value;
-            }
+          if (event.target.value.trim() === '') {
+            heading.textContent = 'Instruction Set 2';
+          } else {
+            heading.textContent = event.target.value;
           }
         }
       }
     });
+    
+    
   ")),
   
   

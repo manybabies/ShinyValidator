@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+.Renviron
 
 # renv
 renv/library/
@@ -12,3 +13,7 @@ renv/sandbox/
 /data_specifications/Admin_stresstest_stresstest.yaml
 /sample_datasets/stresstest.csv
 /configuration/config_Admin.yaml
+
+# Key generation
+key_generation.R
+
