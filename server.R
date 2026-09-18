@@ -3039,6 +3039,57 @@ server <- function(input, output, session) {
   
   # Downloads ---------------------------------------------------------------------------
   
+  # Download sample dataset
+  
+  output$downloadSampleDataset <- downloadHandler(
+    
+    filename = function() {
+      paste0(
+        "sample_dataset_",
+        Sys.Date(),
+        ".csv"
+      )
+    },
+    
+    contentType = "text/csv",
+    
+    content = function(file) {
+      
+      req(input$study, input$format)
+      
+      yaml_file_path <- paste0(
+        "data_specifications/",
+        selected_configuration_name(),
+        "_",
+        input$study,
+        "_",
+        input$format,
+        ".yaml"
+      )
+      
+      if (!file.exists(yaml_file_path)) {
+        stop(
+          "The corresponding YAML specification file does not exist."
+        )
+      }
+      
+      fields <- yaml::yaml.load_file(
+        yaml_file_path
+      )
+      
+      sample_dataset <- generate_sample_dataset(
+        fields,
+        n = 10
+      )
+      
+      readr::write_csv(
+        sample_dataset,
+        file,
+        na = ""
+      )
+    }
+  )
+  
   # Download specification
   
   output$downloadSetup <- downloadHandler(
