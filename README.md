@@ -253,6 +253,20 @@ The template version of the validator should open in a new window.
 
 You can use this version to create and test your customized configurations and data specifications.
 
+### Important note for Admin
+
+The Validator requires a secret key to generate authenticated downloads.
+
+No manual key setup is required. When the Validator is run for the first time, it automatically:
+
+1. Generates a secure secret key.
+2. Saves the key locally in `.Renviron`.
+3. Uses the key to authenticate downloads.
+
+To start the Validator, open the project in RStudio and click **Run App**.
+
+The `.Renviron` file is excluded from Git and should never be committed or shared.
+
 </details>
 
 <details>
