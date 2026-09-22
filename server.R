@@ -4,6 +4,54 @@ library(yaml)
 library(DT)
 library(digest)
 
+# Generate secret key if needed
+
+if (!nzchar(Sys.getenv("VALIDATOR_SECRET_KEY"))) {
+  
+  if (!file.exists(".Renviron")) {
+    
+    key <- paste0(
+      sprintf("%02x", as.integer(openssl::rand_bytes(32))),
+      collapse = ""
+    )
+    
+    writeLines(
+      paste0("VALIDATOR_SECRET_KEY=", key),
+      ".Renviron"
+    )
+    
+    Sys.setenv(VALIDATOR_SECRET_KEY = key)
+    
+  } else {
+    
+    stop(
+      "VALIDATOR_SECRET_KEY is not set, but .Renviron already exists. ",
+      "Please check your .Renviron file."
+    )
+  }
+}
+
+source("common.R")
+source("ErrorHandler.R")
+
+# Load default configuration
+
+config <- yaml::read_yaml("configuration/config_Default.yaml")
+
+secret_key <- Sys.getenv("VALIDATOR_SECRET_KEY")
+
+if (!nzchar(secret_key)) {
+  stop(
+    "VALIDATOR_SECRET_KEY is not set. ",
+    "The Validator cannot generate authenticated downloads."
+  )
+}
+
+if (nchar(secret_key) != 64) {
+  stop(
+    "VALIDATOR_SECRET_KEY must be a 64-character hexadecimal key."
+  )
+}
 
 # Load shared functions ------------------------------------------------------------------
 
