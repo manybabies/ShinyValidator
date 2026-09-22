@@ -1043,6 +1043,8 @@ server <- function(input, output, session) {
   
   # Specification
   
+  # Specification
+  
   output$specification <- renderUI({
     
     req(input$study, input$format)
@@ -1090,10 +1092,16 @@ server <- function(input, output, session) {
           "No"
         }
         
+        empty_text <- if (isTRUE(field$empty_allowed)) {
+          "Yes"
+        } else {
+          "No"
+        }
+        
         requirements <- list()
         
         requirements[[length(requirements) + 1]] <- tags$li(
-          tags$strong("Required: "),
+          tags$strong("Column Required: "),
           required_text
         )
         
@@ -1103,8 +1111,13 @@ server <- function(input, output, session) {
         )
         
         requirements[[length(requirements) + 1]] <- tags$li(
-          tags$strong("Missing values allowed: "),
+          tags$strong("NA values allowed: "),
           na_text
+        )
+        
+        requirements[[length(requirements) + 1]] <- tags$li(
+          tags$strong("Empty cells allowed: "),
+          empty_text
         )
         
         
@@ -1244,6 +1257,7 @@ server <- function(input, output, session) {
           }
         }
         
+        
         tags$div(
           style = paste(
             "border: 1px solid #ddd;",
@@ -1311,6 +1325,9 @@ server <- function(input, output, session) {
       delim = delimiter,
       locale = readr::locale(
         decimal_mark = decimal_mark
+      ),
+      col_types = readr::cols(
+        .default = readr::col_character()
       ),
       na = "NA",
       show_col_types = FALSE
@@ -2194,6 +2211,14 @@ server <- function(input, output, session) {
           FALSE
         }
         
+        empty_allowed <- if (
+          input[[paste0("allow_empty_", i)]] == "yes"
+        ) {
+          TRUE
+        } else {
+          FALSE
+        }
+        
         data_list[[length(data_list) + 1]] <- list(
           field = input[[paste0("field_name_", i)]],
           description = input[[paste0("field_description_", i)]],
@@ -2226,6 +2251,7 @@ server <- function(input, output, session) {
           },
           required = required,
           NA_allowed = NA_allowed,
+          empty_allowed = empty_allowed,
           error_message = toString(
             input[[paste0("error_message_", i)]]
           )
@@ -2307,7 +2333,7 @@ server <- function(input, output, session) {
           
           selectInput(
             paste0("is_required_", i),
-            "Is this variable required?",
+            "Is this variable required? (Selecting 'No' means the validator will not flag the dataset as invalid if this column is missing)",
             choices = c(
               "Yes" = "yes",
               "No" = "no"
@@ -2320,7 +2346,18 @@ server <- function(input, output, session) {
             choices = c(
               "Yes" = "yes",
               "No" = "no"
-            )
+            ),
+            selected = "no"
+          ),
+          
+          selectInput(
+            paste0("allow_empty_", i),
+            "Are empty cells allowed?",
+            choices = c(
+              "Yes" = "yes",
+              "No" = "no"
+            ),
+            selected = "no"
           )
         ),
         

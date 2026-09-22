@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.6] - 2026-09-22
+
+- Fixed: Empty and NA were not being differentiated
+
 ## [2.0.5] - 2026-09-18
 
 - Added: auto file name generation for downloading validated csv file
