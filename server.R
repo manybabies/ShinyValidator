@@ -155,36 +155,6 @@ server <- function(input, output, session) {
     )
   })
   
-  # Selected logo
-  
-  output$application_logo <- renderUI({
-    
-    current_config <- selected_config()
-    
-    if (
-      isTRUE(current_config$logo$enabled) &&
-      !is.null(current_config$logo$file)
-    ) {
-      
-      logo_path <- file.path(
-        "logos",
-        current_config$logo$file
-      )
-      
-      if (!file.exists(logo_path)) {
-        return(NULL)
-      }
-      
-      tags$img(
-        src = file.path(
-          "logos",
-          current_config$logo$file
-        ),
-        class = "validator-logo"
-      )
-    }
-  })
-  
   # Available specifications
   
   available_specifications <- reactive({
@@ -539,50 +509,6 @@ server <- function(input, output, session) {
         
         column(
           width = 6,
-          
-          # Custom logo
-          
-          h4("Custom Logo"),
-          
-          checkboxInput(
-            "enable_logo",
-            "Enable custom logo",
-            value = !is.null(current_config$logo) &&
-              isTRUE(current_config$logo$enabled)
-          ),
-          
-          conditionalPanel(
-            condition = "input.enable_logo",
-            
-            fluidRow(
-              
-              column(
-                width = 7,
-                
-                fileInput(
-                  "config_logo",
-                  "Upload logo:",
-                  multiple = FALSE,
-                  accept = c(
-                    "image/png",
-                    "image/jpeg",
-                    "image/jpg"
-                  )
-                ),
-                
-                helpText(
-                  "The uploaded logo will be saved to the validator's 'logos' folder ",
-                  "using its original filename."
-                )
-              ),
-              
-              column(
-                width = 5,
-                
-                uiOutput("logo_preview")
-              )
-            )
-          )
         )
       ),
       
@@ -776,74 +702,6 @@ server <- function(input, output, session) {
     )
   })
   
-  
-  # Logo preview
-  
-  output$logo_preview <- renderUI({
-    
-    req(input$enable_logo)
-    
-    if (
-      !is.null(input$config_logo) &&
-      !is.null(input$config_logo$datapath)
-    ) {
-      
-      logo_url <- session$fileUrl(
-        "uploaded_logo",
-        input$config_logo$datapath,
-        contentType = input$config_logo$type
-      )
-      
-      return(
-        tags$div(
-          class = "configuration-logo-preview",
-          
-          tags$img(
-            src = logo_url
-          )
-        )
-      )
-    }
-    
-    
-    # Show existing logo if one is already configured
-    
-    current_config <- selected_config()
-    
-    if (
-      !is.null(current_config$logo) &&
-      isTRUE(current_config$logo$enabled) &&
-      !is.null(current_config$logo$file)
-    ) {
-      
-      logo_path <- file.path(
-        "logos",
-        current_config$logo$file
-      )
-      
-      if (file.exists(logo_path)) {
-        
-        logo_url <- session$fileUrl(
-          "existing_logo",
-          logo_path,
-          contentType = "image/png"
-        )
-        
-        return(
-          tags$div(
-            class = "configuration-logo-preview",
-            
-            tags$img(
-              src = logo_url
-            )
-          )
-        )
-      }
-    }
-    
-    
-    NULL
-  })
   
   # Theme preview
   
@@ -3437,45 +3295,11 @@ server <- function(input, output, session) {
       }
       
       
-      # Custom logo
-      
-      logo <- NULL
-      
-      if (isTRUE(input$enable_logo)) {
-        
-        req(input$config_logo)
-        
-        if (!dir.exists("logos")) {
-          dir.create("logos")
-        }
-        
-        logo_filename <- basename(
-          input$config_logo$name
-        )
-        
-        file.copy(
-          input$config_logo$datapath,
-          file.path(
-            "logos",
-            logo_filename
-          ),
-          overwrite = TRUE
-        )
-        
-        logo <- list(
-          enabled = TRUE,
-          file = logo_filename,
-          width = "180px"
-        )
-      }
-      
-      
       # Create configuration
       
       configuration <- list(
         theme = input$config_theme,
         app_title = input$config_app_title,
-        logo = logo,
         welcome_message = welcome_message,
         secondary_message = secondary_message,
         instruction_set_1_name = instruction_set_1_name,

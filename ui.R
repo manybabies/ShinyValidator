@@ -252,30 +252,6 @@ ui <- fluidPage(
         padding-right: 15px;
       }
       
-      
-      /* Configuration logo preview */
-      
-      .configuration-logo-preview {
-        min-height: 120px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 10px;
-        margin-top: 5px;
-        border: 1px solid #DDDDDD;
-        border-radius: 8px;
-        background-color: #FAFAFA;
-      }
-      
-      .configuration-logo-preview img {
-        max-width: 100%;
-        max-height: 120px;
-        width: auto;
-        height: auto;
-        object-fit: contain;
-      }
-      
-      
       /* Sidebar */
       
       .well {
