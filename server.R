@@ -93,17 +93,104 @@ server <- function(input, output, session) {
   
   # Configuration -------------------------------------------------------------------------
   
-  # Selected configuration
+  # Selected configuration ---------------------------------------------------------------
   
   selected_config <- reactive({
     
-    req(input$configuration)
-    
-    yaml::read_yaml(
-      file.path(
-        "configuration",
-        input$configuration
+    if (identical(input$configuration_source, "local")) {
+      
+      req(input$local_configuration)
+      
+      yaml_file_path <- input$local_configuration$datapath
+      
+      req(file.exists(yaml_file_path))
+      
+      tryCatch(
+        {
+          config <- yaml::yaml.load_file(
+            yaml_file_path
+          )
+          
+          if (
+            !is.list(config) ||
+            length(config) == 0
+          ) {
+            stop(
+              "The YAML file does not contain a valid ShinyValidator configuration."
+            )
+          }
+          
+          config
+          
+        },
+        error = function(e) {
+          validate(
+            need(
+              FALSE,
+              paste0(
+                "Could not load the YAML configuration: ",
+                e$message
+              )
+            )
+          )
+        }
       )
+      
+    } else {
+      
+      req(input$configuration)
+      
+      yaml::yaml.load_file(
+        file.path(
+          "configuration",
+          input$configuration
+        )
+      )
+    }
+  })
+  
+  # Local configuration status
+  
+  output$local_configuration_status <- renderUI({
+    
+    req(input$local_configuration)
+    
+    yaml_file_path <- input$local_configuration$datapath
+    
+    tryCatch(
+      {
+        config <- yaml::yaml.load_file(
+          yaml_file_path
+        )
+        
+        if (
+          !is.list(config) ||
+          length(config) == 0
+        ) {
+          stop(
+            "The file does not contain a valid configuration."
+          )
+        }
+        
+        tags$p(
+          style = "color: green;",
+          paste0(
+            "✓ Configuration loaded: ",
+            input$local_configuration$name
+          )
+        )
+        
+      },
+      error = function(e) {
+        
+        tags$p(
+          style = "color: red;",
+          paste0(
+            "Unable to load configuration: ",
+            e$message
+          )
+        )
+      }
     )
   })
   
@@ -144,15 +231,28 @@ server <- function(input, output, session) {
   
   selected_configuration_name <- reactive({
     
-    req(input$configuration)
-    
-    tools::file_path_sans_ext(
+    if (identical(input$configuration_source, "local")) {
+      
+      req(input$local_configuration)
+      
+      tools::file_path_sans_ext(
+        input$local_configuration$name
+      )
+      
+    } else {
+      
+      req(input$configuration)
+      
+      configuration_name <- tools::file_path_sans_ext(
+        input$configuration
+      )
+      
       sub(
         "^config_",
         "",
-        input$configuration
+        configuration_name
       )
-    )
+    }
   })
   
   # Selected specification ---------------------------------------------------------------
