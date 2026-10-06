@@ -1,6 +1,6 @@
 # ShinyValidator
 
-Current version: 2.0.6 (Sept 22, 2026)
+Current version: 2.0.7 (Oct 06, 2026)
 
 See the [Changelog](changelog.md) for a history of updates.
 
@@ -76,7 +76,11 @@ The **Validation Results** function is the primary way to validate a dataset.
 
 1. **Select a configuration** from the *Configuration* drop-down menu.
 
+- Alternatively, use the "Local YAML Configuration" function to select a local configuration
+
 2. **Select a study** from the *Study* drop-down menu.
+
+- Alternatively, use the "Local YAML Specification" function to select a local specification.
 
 3. **Select a format** from the *Study Format* drop-down menu.
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.0.7] - 2026-10-06
+
+- Removed: Custom logo functions; currently deprecated, fix impending
+- Added: Local YAML configuration and specification function, which allows users to upload and use a local .yaml through the live version of the app
+
 ## [2.0.6] - 2026-09-22
 
 - Fixed: Empty and NA were not being differentiated
