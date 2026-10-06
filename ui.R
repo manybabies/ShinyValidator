@@ -1165,6 +1165,16 @@ ui <- fluidPage(
           
           h3("Specification Details"),
           
+          br(),
+          
+          downloadButton(
+            "downloadCodebook",
+            "Download Codebook"
+          ),
+          
+          br(),
+          br(),
+          
           uiOutput("specification_message"),
           
           uiOutput("specification")
