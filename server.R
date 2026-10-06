@@ -155,6 +155,151 @@ server <- function(input, output, session) {
     )
   })
   
+  # Selected specification ---------------------------------------------------------------
+  
+  selected_specification_path <- reactive({
+    
+    if (identical(input$specification_source, "local")) {
+      
+      req(input$local_specification)
+      
+      input$local_specification$datapath
+      
+    } else {
+      
+      req(input$study, input$format)
+      
+      file.path(
+        "data_specifications",
+        paste0(
+          selected_configuration_name(),
+          "_",
+          input$study,
+          "_",
+          input$format,
+          ".yaml"
+        )
+      )
+    }
+  })
+  
+  
+  selected_specification <- reactive({
+    
+    yaml_file_path <- selected_specification_path()
+    
+    req(file.exists(yaml_file_path))
+    
+    tryCatch(
+      {
+        fields <- yaml::yaml.load_file(
+          yaml_file_path
+        )
+        
+        if (
+          !is.list(fields) ||
+          length(fields) == 0
+        ) {
+          stop(
+            "The YAML file does not contain a valid ShinyValidator specification."
+          )
+        }
+        
+        invalid_fields <- vapply(
+          fields,
+          function(field) {
+            !is.list(field) ||
+              is.null(field$field) ||
+              is.null(field$type)
+          },
+          logical(1)
+        )
+        
+        if (any(invalid_fields)) {
+          stop(
+            "The YAML file does not contain a valid ShinyValidator specification."
+          )
+        }
+        
+        fields
+        
+      },
+      error = function(e) {
+        validate(
+          need(
+            FALSE,
+            paste0(
+              "Could not load the YAML specification: ",
+              e$message
+            )
+          )
+        )
+      }
+    )
+  })
+  
+  
+  # Local specification status
+  
+  output$local_specification_status <- renderUI({
+    
+    req(input$local_specification)
+    
+    yaml_file_path <- input$local_specification$datapath
+    
+    tryCatch(
+      {
+        fields <- yaml::yaml.load_file(
+          yaml_file_path
+        )
+        
+        if (
+          !is.list(fields) ||
+          length(fields) == 0
+        ) {
+          stop(
+            "The file does not contain any specification fields."
+          )
+        }
+        
+        invalid_fields <- vapply(
+          fields,
+          function(field) {
+            !is.list(field) ||
+              is.null(field$field) ||
+              is.null(field$type)
+          },
+          logical(1)
+        )
+        
+        if (any(invalid_fields)) {
+          stop(
+            "The file does not appear to be a valid ShinyValidator specification."
+          )
+        }
+        
+        tags$p(
+          style = "color: green;",
+          paste0(
+            "✓ Specification loaded: ",
+            input$local_specification$name
+          )
+        )
+        
+      },
+      error = function(e) {
+        
+        tags$p(
+          style = "color: red;",
+          paste0(
+            "Unable to load specification: ",
+            e$message
+          )
+        )
+      }
+    )
+  })
+  
   # Available specifications
   
   available_specifications <- reactive({
@@ -951,21 +1096,7 @@ server <- function(input, output, session) {
   
   output$specification <- renderUI({
     
-    req(input$study, input$format)
-    
-    yaml_file_path <- paste0(
-      "data_specifications/",
-      selected_configuration_name(),
-      "_",
-      input$study,
-      "_",
-      input$format,
-      ".yaml"
-    )
-    
-    req(file.exists(yaml_file_path))
-    
-    fields <- yaml::yaml.load_file(yaml_file_path)
+    fields <- selected_specification()
     
     type_labels <- c(
       options = "Options",
@@ -1197,21 +1328,8 @@ server <- function(input, output, session) {
   output$validation_summary <- renderUI({
     
     req(input$file)
-    req(input$study, input$format)
     
-    yaml_file_path <- paste0(
-      "data_specifications/",
-      selected_configuration_name(),
-      "_",
-      input$study,
-      "_",
-      input$format,
-      ".yaml"
-    )
-    
-    req(file.exists(yaml_file_path))
-    
-    fields <- yaml::yaml.load_file(yaml_file_path)
+    fields <- selected_specification()
     
     delimiter <- detect_delimiter(
       input$file$datapath
@@ -1422,21 +1540,8 @@ server <- function(input, output, session) {
   output$errors_by_column <- renderUI({
     
     req(input$file)
-    req(input$study, input$format)
     
-    yaml_file_path <- paste0(
-      "data_specifications/",
-      selected_configuration_name(),
-      "_",
-      input$study,
-      "_",
-      input$format,
-      ".yaml"
-    )
-    
-    req(file.exists(yaml_file_path))
-    
-    fields <- yaml::yaml.load_file(yaml_file_path)
+    fields <- selected_specification()
     
     df <- edited_data()
     
@@ -3012,27 +3117,7 @@ server <- function(input, output, session) {
     
     content = function(file) {
       
-      req(input$study, input$format)
-      
-      yaml_file_path <- paste0(
-        "data_specifications/",
-        selected_configuration_name(),
-        "_",
-        input$study,
-        "_",
-        input$format,
-        ".yaml"
-      )
-      
-      if (!file.exists(yaml_file_path)) {
-        stop(
-          "The corresponding YAML specification file does not exist."
-        )
-      }
-      
-      fields <- yaml::yaml.load_file(
-        yaml_file_path
-      )
+      fields <- selected_specification()
       
       sample_dataset <- generate_sample_dataset(
         fields,
@@ -3340,27 +3425,7 @@ server <- function(input, output, session) {
         )
       }
       
-      req(input$study, input$format)
-      
-      yaml_file_path <- paste0(
-        "data_specifications/",
-        selected_configuration_name(),
-        "_",
-        input$study,
-        "_",
-        input$format,
-        ".yaml"
-      )
-      
-      if (!file.exists(yaml_file_path)) {
-        stop(
-          "The corresponding YAML specification file does not exist."
-        )
-      }
-      
-      fields <- yaml::yaml.load_file(
-        yaml_file_path
-      )
+      fields <- selected_specification()
       
       validated <- validate_dataset(
         fields,
@@ -3503,8 +3568,20 @@ output$downloadCSV_confirmed <- downloadHandler(
       )
     }
     
-    study <- input$study
-    study_format <- input$format
+    if (identical(input$specification_source, "local")) {
+      
+      study <- tools::file_path_sans_ext(
+        input$local_specification$name
+      )
+      
+      study_format <- "local"
+      
+    } else {
+      
+      study <- input$study
+      study_format <- input$format
+      
+    }
     
     # Remove characters that could cause problems in a filename
     
@@ -3646,34 +3723,19 @@ observeEvent(input$file, {
   
   # Check whether edited dataset is valid
   
-  dataset_is_valid <- reactive({
-    
-    req(edited_data())
-    req(input$study, input$format)
-    
-    yaml_file_path <- paste0(
-      "data_specifications/",
-      selected_configuration_name(),
-      "_",
-      input$study,
-      "_",
-      input$format,
-      ".yaml"
-    )
-    
-    req(file.exists(yaml_file_path))
-    
-    fields <- yaml::yaml.load_file(
-      yaml_file_path
-    )
-    
-    validated <- validate_dataset(
-      fields,
-      edited_data()
-    )
-    
-    validated[[1]]
-  })
+dataset_is_valid <- reactive({
+  
+  req(edited_data())
+  
+  fields <- selected_specification()
+  
+  validated <- validate_dataset(
+    fields,
+    edited_data()
+  )
+  
+  validated[[1]]
+})
   
   # Show CSV download only when dataset is valid
   
@@ -3712,21 +3774,8 @@ observeEvent(input$file, {
   output$validation_preview <- DT::renderDT({
     
     req(input$file)
-    req(input$study, input$format)
     
-    yaml_file_path <- paste0(
-      "data_specifications/",
-      selected_configuration_name(),
-      "_",
-      input$study,
-      "_",
-      input$format,
-      ".yaml"
-    )
-    
-    req(file.exists(yaml_file_path))
-    
-    fields <- yaml::yaml.load_file(yaml_file_path)
+    fields <- selected_specification()
     
     df <- edited_data()
     
