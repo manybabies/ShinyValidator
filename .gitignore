@@ -19,3 +19,6 @@ key_generation.R
 
 # rsconnect deployment files
 rsconnect/
+
+# publication materials
+publication_materials/
