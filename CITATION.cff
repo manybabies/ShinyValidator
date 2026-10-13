@@ -5,6 +5,7 @@ type: software
 version: "2.1.1"
 date-released: "2026-10-13"
 license: MIT
+doi: "10.5281/zenodo.23350855"
 repository-code: "https://github.com/manybabies/ShinyValidator"
 url: "https://manybabies.shinyapps.io/shinyvalidator/"
 abstract: "ShinyValidator is a customizable R Shiny tool for checking research datasets against predefined data specifications. Users upload a CSV, review the validation results and suggested fixes, and download a highlighted Excel file and an authenticated, validated CSV."

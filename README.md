@@ -14,6 +14,8 @@ You can find a live version of this template [here](https://manybabies.shinyapps
 
 ## Citing ShinyValidator
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23350855.svg)](https://doi.org/10.5281/zenodo.23350855)
+
 If you use ShinyValidator in academic work, please cite it. Citation details are in [`CITATION.cff`](CITATION.cff), and GitHub's **Cite this repository** link (in the right-hand sidebar of the repository page) will generate a ready-to-copy citation in APA or BibTeX format. Each release is also archived on Zenodo, which provides a permanent DOI.
 
 ShinyValidator is released under the [MIT License](LICENSE).
