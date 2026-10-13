@@ -5,7 +5,10 @@ library(DT)
 library(digest)
 library(openxlsx)
 
-# Generate secret key if needed
+
+# Secret key -----------------------------------------------------------------------------
+
+# Generate a key on first run if none is set
 
 if (!nzchar(Sys.getenv("VALIDATOR_SECRET_KEY"))) {
   
@@ -32,13 +35,6 @@ if (!nzchar(Sys.getenv("VALIDATOR_SECRET_KEY"))) {
   }
 }
 
-source("common.R")
-source("ErrorHandler.R")
-
-# Load default configuration
-
-config <- yaml::read_yaml("configuration/config_Default.yaml")
-
 secret_key <- Sys.getenv("VALIDATOR_SECRET_KEY")
 
 if (!nzchar(secret_key)) {
@@ -49,52 +45,55 @@ if (!nzchar(secret_key)) {
 }
 
 if (nchar(secret_key) != 64) {
-  stop(
-    "VALIDATOR_SECRET_KEY must be a 64-character hexadecimal key."
-  )
+  stop("VALIDATOR_SECRET_KEY must be a 64-character hexadecimal key.")
 }
 
-# Load shared functions ------------------------------------------------------------------
+
+# Shared functions and default configuration (loaded once) -------------------------------
 
 source("common.R")
 source("ErrorHandler.R")
 
+config <- read_yaml_safe("configuration/config_Default.yaml")
 
-# Load default configuration and key ------------------------------------------------------
 
-config <- yaml::read_yaml("configuration/config_Default.yaml")
+# Helpers --------------------------------------------------------------------------------
 
-secret_key <- Sys.getenv("VALIDATOR_SECRET_KEY")
-
-if (!nzchar(secret_key)) {
-  stop(
-    "VALIDATOR_SECRET_KEY is not set. ",
-    "The Validator cannot generate authenticated downloads."
-  )
+# Only the known theme names are ever sent to the browser
+valid_theme <- function(theme) {
+  if (
+    is.character(theme) &&
+    length(theme) == 1 &&
+    theme %in% c("blue", "purple", "teal")
+  ) {
+    theme
+  } else {
+    "blue"
+  }
 }
 
-if (nchar(secret_key) != 64) {
-  stop(
-    "VALIDATOR_SECRET_KEY must be a 64-character hexadecimal key."
-  )
+is_valid_lab_id <- function(x) {
+  length(x) == 1 &&
+    !is.na(x) &&
+    grepl("^[A-Za-z0-9-]+$", trimws(x))
 }
+
+# Upper limit for the number of variables in the specification builder
+max_variables <- 200
 
 
 # Logo resource path ---------------------------------------------------------------------
 
-addResourcePath(
-  "logos",
-  "logos"
-)
+addResourcePath("logos", "logos")
 
 
-# Server --------------------------------------------------------------------------------
+# Server ---------------------------------------------------------------------------------
 
 server <- function(input, output, session) {
   
-  # Configuration -------------------------------------------------------------------------
+  # Configuration ------------------------------------------------------------------------
   
-  # Selected configuration ---------------------------------------------------------------
+  # Selected configuration
   
   selected_config <- reactive({
     
@@ -108,30 +107,19 @@ server <- function(input, output, session) {
       
       tryCatch(
         {
-          config <- yaml::yaml.load_file(
-            yaml_file_path
-          )
+          local_config <- read_yaml_safe(yaml_file_path)
           
-          if (
-            !is.list(config) ||
-            length(config) == 0
-          ) {
-            stop(
-              "The YAML file does not contain a valid ShinyValidator configuration."
-            )
+          if (!is.list(local_config) || length(local_config) == 0) {
+            stop("The YAML file does not contain a valid ShinyValidator configuration.")
           }
           
-          config
-          
+          local_config
         },
         error = function(e) {
           validate(
             need(
               FALSE,
-              paste0(
-                "Could not load the YAML configuration: ",
-                e$message
-              )
+              paste0("Could not load the YAML configuration: ", e$message)
             )
           )
         }
@@ -139,16 +127,16 @@ server <- function(input, output, session) {
       
     } else {
       
-      req(input$configuration)
-      
-      yaml::yaml.load_file(
-        file.path(
-          "configuration",
-          input$configuration
-        )
+      # Only accept filenames from the known list (blocks ../ tricks)
+      req(
+        input$configuration %in%
+          list.files("configuration", pattern = "^config_.+\\.yaml$")
       )
+      
+      read_yaml_safe(file.path("configuration", input$configuration))
     }
   })
+  
   
   # Local configuration status
   
@@ -160,73 +148,46 @@ server <- function(input, output, session) {
     
     tryCatch(
       {
-        config <- yaml::yaml.load_file(
-          yaml_file_path
-        )
+        local_config <- read_yaml_safe(yaml_file_path)
         
-        if (
-          !is.list(config) ||
-          length(config) == 0
-        ) {
-          stop(
-            "The file does not contain a valid configuration."
-          )
+        if (!is.list(local_config) || length(local_config) == 0) {
+          stop("The file does not contain a valid configuration.")
         }
         
         tags$p(
           style = "color: green;",
-          paste0(
-            "✓ Configuration loaded: ",
-            input$local_configuration$name
-          )
+          paste0("✓ Configuration loaded: ", input$local_configuration$name)
         )
-        
       },
       error = function(e) {
-        
         tags$p(
           style = "color: red;",
-          paste0(
-            "Unable to load configuration: ",
-            e$message
-          )
+          paste0("Unable to load configuration: ", e$message)
         )
       }
     )
   })
   
+  
   # Apply selected theme
   
   observe({
-    
-    current_config <- selected_config()
-    theme <- current_config$theme
-    
-    if (is.null(theme)) {
-      theme <- "blue"
-    }
-    
     session$sendCustomMessage(
       "set-theme",
-      theme
+      valid_theme(selected_config()$theme)
     )
   })
+  
   
   # Preview selected theme
   
   observeEvent(input$config_theme, {
-    
-    theme <- input$config_theme
-    
-    if (is.null(theme)) {
-      theme <- "blue"
-    }
-    
     session$sendCustomMessage(
       "set-theme",
-      theme
+      valid_theme(input$config_theme)
     )
   })
+  
   
   # Selected configuration name
   
@@ -236,25 +197,18 @@ server <- function(input, output, session) {
       
       req(input$local_configuration)
       
-      tools::file_path_sans_ext(
-        input$local_configuration$name
-      )
+      tools::file_path_sans_ext(input$local_configuration$name)
       
     } else {
       
       req(input$configuration)
       
-      configuration_name <- tools::file_path_sans_ext(
-        input$configuration
-      )
+      configuration_name <- tools::file_path_sans_ext(input$configuration)
       
-      sub(
-        "^config_",
-        "",
-        configuration_name
-      )
+      sub("^config_", "", configuration_name)
     }
   })
+  
   
   # Selected specification ---------------------------------------------------------------
   
@@ -270,17 +224,14 @@ server <- function(input, output, session) {
       
       req(input$study, input$format)
       
-      file.path(
-        "data_specifications",
-        paste0(
-          selected_configuration_name(),
-          "_",
-          input$study,
-          "_",
-          input$format,
-          ".yaml"
-        )
+      spec_file <- paste0(
+        selected_configuration_name(), "_", input$study, "_", input$format, ".yaml"
       )
+      
+      # Must be one of the files actually listed in data_specifications/
+      req(spec_file %in% available_specifications())
+      
+      file.path("data_specifications", spec_file)
     }
   })
   
@@ -293,46 +244,31 @@ server <- function(input, output, session) {
     
     tryCatch(
       {
-        fields <- yaml::yaml.load_file(
-          yaml_file_path
-        )
+        fields <- read_yaml_safe(yaml_file_path)
         
-        if (
-          !is.list(fields) ||
-          length(fields) == 0
-        ) {
-          stop(
-            "The YAML file does not contain a valid ShinyValidator specification."
-          )
+        if (!is.list(fields) || length(fields) == 0) {
+          stop("The YAML file does not contain a valid ShinyValidator specification.")
         }
         
         invalid_fields <- vapply(
           fields,
           function(field) {
-            !is.list(field) ||
-              is.null(field$field) ||
-              is.null(field$type)
+            !is.list(field) || is.null(field$field) || is.null(field$type)
           },
           logical(1)
         )
         
         if (any(invalid_fields)) {
-          stop(
-            "The YAML file does not contain a valid ShinyValidator specification."
-          )
+          stop("The YAML file does not contain a valid ShinyValidator specification.")
         }
         
         fields
-        
       },
       error = function(e) {
         validate(
           need(
             FALSE,
-            paste0(
-              "Could not load the YAML specification: ",
-              e$message
-            )
+            paste0("Could not load the YAML specification: ", e$message)
           )
         )
       }
@@ -350,74 +286,55 @@ server <- function(input, output, session) {
     
     tryCatch(
       {
-        fields <- yaml::yaml.load_file(
-          yaml_file_path
-        )
+        fields <- read_yaml_safe(yaml_file_path)
         
-        if (
-          !is.list(fields) ||
-          length(fields) == 0
-        ) {
-          stop(
-            "The file does not contain any specification fields."
-          )
+        if (!is.list(fields) || length(fields) == 0) {
+          stop("The file does not contain any specification fields.")
         }
         
         invalid_fields <- vapply(
           fields,
           function(field) {
-            !is.list(field) ||
-              is.null(field$field) ||
-              is.null(field$type)
+            !is.list(field) || is.null(field$field) || is.null(field$type)
           },
           logical(1)
         )
         
         if (any(invalid_fields)) {
-          stop(
-            "The file does not appear to be a valid ShinyValidator specification."
-          )
+          stop("The file does not appear to be a valid ShinyValidator specification.")
         }
         
         tags$p(
           style = "color: green;",
-          paste0(
-            "✓ Specification loaded: ",
-            input$local_specification$name
-          )
+          paste0("✓ Specification loaded: ", input$local_specification$name)
         )
-        
       },
       error = function(e) {
-        
         tags$p(
           style = "color: red;",
-          paste0(
-            "Unable to load specification: ",
-            e$message
-          )
+          paste0("Unable to load specification: ", e$message)
         )
       }
     )
   })
   
+  
   # Available specifications
+  # (prefix match, not a regex, so special characters in a name can't break it)
   
   available_specifications <- reactive({
     
     req(selected_configuration_name())
     
-    config_name <- selected_configuration_name()
+    prefix <- paste0(selected_configuration_name(), "_")
     
-    list.files(
+    files <- list.files(
       "data_specifications",
-      pattern = paste0(
-        "^",
-        config_name,
-        "_.*\\.yaml$"
-      ),
+      pattern = "\\.yaml$",
       full.names = FALSE
     )
+    
+    files[startsWith(files, prefix)]
   })
   
   
@@ -429,16 +346,8 @@ server <- function(input, output, session) {
     
     tibble(
       file = files,
-      study = sub(
-        "^[^_]+_([^_]+)_.*\\.yaml$",
-        "\\1",
-        files
-      ),
-      format = sub(
-        "^[^_]+_[^_]+_(.*)\\.yaml$",
-        "\\1",
-        files
-      )
+      study = sub("^[^_]+_([^_]+)_.*\\.yaml$", "\\1", files),
+      format = sub("^[^_]+_[^_]+_(.*)\\.yaml$", "\\1", files)
     )
   })
   
@@ -455,21 +364,13 @@ server <- function(input, output, session) {
       
       div(
         class = "no-specifications",
-        
         strong("No specifications available"),
-        
-        p(
-          "No data specifications have been created for this configuration."
-        )
+        p("No data specifications have been created for this configuration.")
       )
       
     } else {
       
-      selectInput(
-        "study",
-        h4("Study"),
-        choices = studies_available
-      )
+      selectInput("study", h4("Study"), choices = studies_available)
     }
   })
   
@@ -510,11 +411,7 @@ server <- function(input, output, session) {
       filter(study == input$study) |>
       pull(format)
     
-    selectInput(
-      "format",
-      label = h4("Study Format"),
-      choices = available_formats
-    )
+    selectInput("format", label = h4("Study Format"), choices = available_formats)
   })
   
   
@@ -550,21 +447,44 @@ server <- function(input, output, session) {
   # Application title
   
   output$app_title <- renderText({
+    selected_config()$app_title
+  })
+  
+  
+  # Application logo
+  # Assumes an optional `logo:` key in the configuration YAML naming an image
+  # file in the logos/ folder. Nothing is shown when the key is absent.
+  
+  output$application_logo <- renderUI({
     
     current_config <- selected_config()
     
-    current_config$app_title
+    logo <- current_config$logo
+    
+    if (is.null(logo) || length(logo) != 1 || is.na(logo) || !nzchar(logo)) {
+      return(NULL)
+    }
+    
+    logo_file <- basename(as.character(logo))
+    
+    if (
+      !grepl("\\.(png|jpe?g|gif|svg|webp)$", logo_file, ignore.case = TRUE) ||
+      !file.exists(file.path("logos", logo_file))
+    ) {
+      return(NULL)
+    }
+    
+    tags$img(
+      src = paste0("logos/", logo_file),
+      alt = "Application logo"
+    )
   })
+  
   
   # Specification message
   
   output$specification_message <- renderUI({
-    
-    current_config <- selected_config()
-    
-    p(
-      current_config$specification_message
-    )
+    p(selected_config()$specification_message)
   })
   
   
@@ -573,8 +493,6 @@ server <- function(input, output, session) {
   output$validation_config_content <- renderUI({
     
     current_config <- selected_config()
-    
-    # Get instruction set names
     
     instruction_set_1_name <- if (
       !is.null(current_config$instruction_set_1_name) &&
@@ -602,22 +520,17 @@ server <- function(input, output, session) {
         !is.null(current_config$welcome_message) &&
         nzchar(current_config$welcome_message)
       ) {
-        p(
-          strong(current_config$welcome_message)
-        )
+        p(strong(current_config$welcome_message))
       },
       
       if (
         !is.null(current_config$secondary_message) &&
         nzchar(current_config$secondary_message)
       ) {
-        p(
-          em(current_config$secondary_message)
-        )
+        p(em(current_config$secondary_message))
       },
       
       fluidRow(
-        
         
         # Instruction Sets
         
@@ -630,11 +543,7 @@ server <- function(input, output, session) {
           ) {
             tagList(
               h4(instruction_set_1_name),
-              
-              lapply(
-                current_config$instruction_set_1,
-                function(x) p(x)
-              )
+              lapply(current_config$instruction_set_1, function(x) p(x))
             )
           },
           
@@ -644,15 +553,10 @@ server <- function(input, output, session) {
           ) {
             tagList(
               h4(instruction_set_2_name),
-              
-              lapply(
-                current_config$instruction_set_2,
-                function(x) p(x)
-              )
+              lapply(current_config$instruction_set_2, function(x) p(x))
             )
           }
         ),
-        
         
         # Links
         
@@ -669,11 +573,20 @@ server <- function(input, output, session) {
               lapply(
                 current_config$links,
                 function(link) {
+                  
+                  url <- safe_link_url(link$url)
+                  
+                  # Skip anything that is not an http(s) link (javascript:, data:, ...)
+                  if (is.null(url)) {
+                    return(NULL)
+                  }
+                  
                   tags$p(
                     tags$a(
-                      href = link$url,
+                      href = url,
                       link$text,
-                      target = "_blank"
+                      target = "_blank",
+                      rel = "noopener noreferrer"
                     )
                   )
                 }
@@ -691,8 +604,6 @@ server <- function(input, output, session) {
   output$configuration_creation_content <- renderUI({
     
     current_config <- selected_config()
-    
-    # Get instruction set names
     
     instruction_set_1_name <- if (
       !is.null(current_config$instruction_set_1_name) &&
@@ -721,12 +632,9 @@ server <- function(input, output, session) {
       selectInput(
         "config_theme",
         "Application Theme:",
-        choices = c(
-          "Blue" = "blue",
-          "Purple" = "purple",
-          "Teal" = "teal"
-        ),
-        selected = "blue"
+        choices = c("Blue" = "blue", "Purple" = "purple", "Teal" = "teal"),
+        # Start from the configuration's own theme instead of resetting to blue
+        selected = valid_theme(current_config$theme)
       ),
       
       uiOutput("theme_preview"),
@@ -736,13 +644,10 @@ server <- function(input, output, session) {
         "The fields below are pre-populated with the current configuration."
       ),
       
-      
       fluidRow(
         
         column(
           width = 6,
-          
-          # Application title
           
           h4("Application Title"),
           
@@ -753,9 +658,7 @@ server <- function(input, output, session) {
           )
         ),
         
-        column(
-          width = 6,
-        )
+        column(width = 6)
       ),
       
       # Welcome message
@@ -773,9 +676,7 @@ server <- function(input, output, session) {
         textAreaInput(
           "config_welcome_message",
           "Welcome message:",
-          value = if (
-            is.null(current_config$welcome_message)
-          ) {
+          value = if (is.null(current_config$welcome_message)) {
             ""
           } else {
             current_config$welcome_message
@@ -783,7 +684,6 @@ server <- function(input, output, session) {
           rows = 3
         )
       ),
-      
       
       # Secondary message
       
@@ -800,9 +700,7 @@ server <- function(input, output, session) {
         textAreaInput(
           "config_secondary_message",
           "Secondary message:",
-          value = if (
-            is.null(current_config$secondary_message)
-          ) {
+          value = if (is.null(current_config$secondary_message)) {
             ""
           } else {
             current_config$secondary_message
@@ -813,18 +711,17 @@ server <- function(input, output, session) {
       
       br(),
       
-      
       # Instruction Sets and Links
       
       fluidRow(
-        
         
         # Instruction Set 1
         
         column(
           width = 4,
           
-          h4("Instruction Set 1"),
+          # The id lets the JavaScript in ui.R update this heading while typing
+          h4(id = "instruction_set_1_creation_heading", instruction_set_1_name),
           
           textInput(
             "config_instruction_set_1_name",
@@ -845,9 +742,7 @@ server <- function(input, output, session) {
             numericInput(
               "num_instruction_lines",
               "Number of instruction lines:",
-              value = if (
-                is.null(current_config$instruction_set_1)
-              ) {
+              value = if (is.null(current_config$instruction_set_1)) {
                 1
               } else {
                 length(unlist(current_config$instruction_set_1))
@@ -860,13 +755,12 @@ server <- function(input, output, session) {
           )
         ),
         
-        
         # Instruction Set 2
         
         column(
           width = 4,
           
-          h4("Instruction Set 2"),
+          h4(id = "instruction_set_2_creation_heading", instruction_set_2_name),
           
           textInput(
             "config_instruction_set_2_name",
@@ -887,9 +781,7 @@ server <- function(input, output, session) {
             numericInput(
               "num_upload_instruction_lines",
               "Number of instruction lines:",
-              value = if (
-                is.null(current_config$instruction_set_2)
-              ) {
+              value = if (is.null(current_config$instruction_set_2)) {
                 1
               } else {
                 length(unlist(current_config$instruction_set_2))
@@ -901,7 +793,6 @@ server <- function(input, output, session) {
             uiOutput("upload_instruction_fields")
           )
         ),
-        
         
         # Links
         
@@ -923,9 +814,7 @@ server <- function(input, output, session) {
             numericInput(
               "num_links",
               "Number of links:",
-              value = if (
-                is.null(current_config$links)
-              ) {
+              value = if (is.null(current_config$links)) {
                 1
               } else {
                 length(current_config$links)
@@ -941,10 +830,7 @@ server <- function(input, output, session) {
       
       br(),
       
-      downloadButton(
-        "downloadConfiguration",
-        "Download Configuration"
-      )
+      downloadButton("downloadConfiguration", "Download Configuration")
     )
   })
   
@@ -953,11 +839,7 @@ server <- function(input, output, session) {
   
   output$theme_preview <- renderUI({
     
-    theme <- input$config_theme
-    
-    if (is.null(theme)) {
-      theme <- "blue"
-    }
+    theme <- valid_theme(input$config_theme)
     
     theme_info <- switch(
       theme,
@@ -996,13 +878,8 @@ server <- function(input, output, session) {
         class = "theme-preview-banner",
         style = paste0(
           "background: linear-gradient(135deg, ",
-          theme_info$banner,
-          ", ",
-          theme_info$light,
-          "); ",
-          "border-color: ",
-          theme_info$border,
-          ";"
+          theme_info$banner, ", ", theme_info$light, "); ",
+          "border-color: ", theme_info$border, ";"
         ),
         strong("Your Validator")
       ),
@@ -1012,35 +889,24 @@ server <- function(input, output, session) {
         
         div(
           class = "theme-preview-button",
-          style = paste0(
-            "background-color: ",
-            theme_info$accent,
-            ";"
-          ),
+          style = paste0("background-color: ", theme_info$accent, ";"),
           "Example Button"
         ),
         
         div(
           class = "theme-preview-card",
           style = paste0(
-            "background-color: ",
-            theme_info$light,
-            "; ",
-            "border-color: ",
-            theme_info$border,
-            ";"
+            "background-color: ", theme_info$light, "; ",
+            "border-color: ", theme_info$border, ";"
           ),
-          paste0(
-            theme_info$name,
-            " theme"
-          )
+          paste0(theme_info$name, " theme")
         )
       )
     )
   })
   
   
-  # Configuration creation dynamic fields -----------------------------------------------
+  # Configuration creation dynamic fields ------------------------------------------------
   
   # Instruction Set 1 fields
   
@@ -1048,17 +914,11 @@ server <- function(input, output, session) {
     
     n <- input$num_instruction_lines
     
-    if (
-      is.null(n) ||
-      is.na(n) ||
-      n < 1
-    ) {
+    if (is.null(n) || is.na(n) || n < 1) {
       return(NULL)
     }
     
-    current_config <- selected_config()
-    
-    existing_instructions <- current_config$instruction_set_1
+    existing_instructions <- selected_config()$instruction_set_1
     
     lapply(
       seq_len(n),
@@ -1066,10 +926,7 @@ server <- function(input, output, session) {
         
         existing_value <- ""
         
-        if (
-          !is.null(existing_instructions) &&
-          length(existing_instructions) >= i
-        ) {
+        if (!is.null(existing_instructions) && length(existing_instructions) >= i) {
           existing_value <- existing_instructions[[i]]
         }
         
@@ -1090,17 +947,11 @@ server <- function(input, output, session) {
     
     n <- input$num_upload_instruction_lines
     
-    if (
-      is.null(n) ||
-      is.na(n) ||
-      n < 1
-    ) {
+    if (is.null(n) || is.na(n) || n < 1) {
       return(NULL)
     }
     
-    current_config <- selected_config()
-    
-    existing_instructions <- current_config$instruction_set_2
+    existing_instructions <- selected_config()$instruction_set_2
     
     lapply(
       seq_len(n),
@@ -1108,10 +959,7 @@ server <- function(input, output, session) {
         
         existing_value <- ""
         
-        if (
-          !is.null(existing_instructions) &&
-          length(existing_instructions) >= i
-        ) {
+        if (!is.null(existing_instructions) && length(existing_instructions) >= i) {
           existing_value <- existing_instructions[[i]]
         }
         
@@ -1132,17 +980,11 @@ server <- function(input, output, session) {
     
     n <- input$num_links
     
-    if (
-      is.null(n) ||
-      is.na(n) ||
-      n < 1
-    ) {
+    if (is.null(n) || is.na(n) || n < 1) {
       return(NULL)
     }
     
-    current_config <- selected_config()
-    
-    existing_links <- current_config$links
+    existing_links <- selected_config()$links
     
     lapply(
       seq_len(n),
@@ -1151,10 +993,7 @@ server <- function(input, output, session) {
         existing_text <- ""
         existing_url <- ""
         
-        if (
-          !is.null(existing_links) &&
-          length(existing_links) >= i
-        ) {
+        if (!is.null(existing_links) && length(existing_links) >= i) {
           
           existing_link <- existing_links[[i]]
           
@@ -1190,20 +1029,15 @@ server <- function(input, output, session) {
   })
   
   
-  
-  # Validation ---------------------------------------------------------------------------
-  
-  # Specification
+  # Specification details ----------------------------------------------------------------
   
   output$specification <- renderUI({
     
     fields <- selected_specification()
     
-    type_labels <- c(
-      options = "Options",
-      numeric = "Numeric",
-      string = "Text"
-    )
+    type_labels <- c(options = "Options", numeric = "Numeric", string = "Text")
+    
+    yes_no <- function(x) if (isTRUE(x)) "Yes" else "No"
     
     tagList(
       lapply(fields, function(field) {
@@ -1211,188 +1045,108 @@ server <- function(input, output, session) {
         field_name <- field$field
         
         field_type <- if (!is.null(field$type)) {
-          type_labels[[field$type]]
+          label <- type_labels[as.character(field$type)]
+          if (is.na(label)) as.character(field$type) else unname(label)
         } else {
           "Not specified"
         }
         
-        required_text <- if (isTRUE(field$required)) {
-          "Yes"
-        } else {
-          "No"
-        }
+        required_text <- yes_no(!isFALSE(flag(field$required)))
+        na_text <- yes_no(isTRUE(flag(field$NA_allowed)))
+        empty_text <- yes_no(isTRUE(flag(field$empty_allowed)))
         
-        na_text <- if (isTRUE(field$NA_allowed)) {
-          "Yes"
-        } else {
-          "No"
-        }
-        
-        empty_text <- if (isTRUE(field$empty_allowed)) {
-          "Yes"
-        } else {
-          "No"
-        }
-        
-        requirements <- list()
-        
-        requirements[[length(requirements) + 1]] <- tags$li(
-          tags$strong("Column Required: "),
-          required_text
+        requirements <- list(
+          tags$li(tags$strong("Column Required: "), required_text),
+          tags$li(tags$strong("Data type: "), field_type),
+          tags$li(tags$strong("NA values allowed: "), na_text),
+          tags$li(tags$strong("Empty cells allowed: "), empty_text)
         )
         
-        requirements[[length(requirements) + 1]] <- tags$li(
-          tags$strong("Data type: "),
-          field_type
-        )
-        
-        requirements[[length(requirements) + 1]] <- tags$li(
-          tags$strong("NA values allowed: "),
-          na_text
-        )
-        
-        requirements[[length(requirements) + 1]] <- tags$li(
-          tags$strong("Empty cells allowed: "),
-          empty_text
-        )
-        
-        
-        # Options
-        
-        if (field$type == "options") {
-          
-          options <- field$options
-          
-          if (is.list(options)) {
-            options <- unlist(
-              options,
-              use.names = FALSE
-            )
-          }
-          
-          options <- as.character(options)
-          
-          requirements[[length(requirements) + 1]] <- tags$li(
-            tags$strong("Allowed values: "),
-            paste(options, collapse = ", ")
+        add_requirement <- function(label, value) {
+          requirements[[length(requirements) + 1]] <<- tags$li(
+            tags$strong(label),
+            value
           )
         }
         
+        # Options
+        
+        if (identical(field$type, "options")) {
+          
+          options <- as.character(unlist(field$options, use.names = FALSE))
+          
+          add_requirement("Allowed values: ", paste(options, collapse = ", "))
+        }
         
         # Numeric
         
-        if (field$type == "numeric") {
+        if (identical(field$type, "numeric")) {
           
-          if (
-            !is.null(field$format) &&
-            field$format == "restricted"
-          ) {
-            
-            requirements[[length(requirements) + 1]] <- tags$li(
-              tags$strong("Allowed range: "),
-              paste0(
-                field$lowerlimit,
-                " to ",
-                field$upperlimit
-              )
+          if (identical(field$format, "restricted")) {
+            add_requirement(
+              "Allowed range: ",
+              paste0(field$lowerlimit, " to ", field$upperlimit)
             )
           }
           
-          if (
-            !is.null(field$allow_decimals) &&
-            field$allow_decimals == "no"
-          ) {
+          allow_dec <- flag(field$allow_decimals)
+          
+          if (isFALSE(allow_dec)) {
             
-            requirements[[length(requirements) + 1]] <- tags$li(
-              tags$strong("Decimal values: "),
-              "Not allowed"
-            )
+            add_requirement("Decimal values: ", "Not allowed")
             
-          } else if (
-            !is.null(field$allow_decimals) &&
-            field$allow_decimals == "yes"
-          ) {
+          } else if (isTRUE(allow_dec)) {
             
-            min_decimals <- field$min_decimals
-            max_decimals <- field$max_decimals
+            min_decimals <- num_or(field$min_decimals, 0)
+            max_decimals <- num_or(field$max_decimals, min_decimals)
             
-            decimal_text <- if (
-              min_decimals == max_decimals
-            ) {
+            decimal_text <- if (min_decimals == max_decimals) {
               paste0(
                 min_decimals,
                 " decimal place",
                 if (min_decimals != 1) "s" else ""
               )
             } else {
-              paste0(
-                min_decimals,
-                "–",
-                max_decimals,
-                " decimal places"
-              )
+              paste0(min_decimals, "–", max_decimals, " decimal places")
             }
             
-            requirements[[length(requirements) + 1]] <- tags$li(
-              tags$strong("Decimal places: "),
-              decimal_text
-            )
+            add_requirement("Decimal places: ", decimal_text)
           }
         }
         
-        
         # String
         
-        if (field$type == "string") {
+        if (identical(field$type, "string")) {
+          
+          string_format <- if (is.null(field$format)) {
+            "open"
+          } else {
+            as.character(field$format)
+          }
           
           validation_text <- switch(
-            field$format,
+            string_format,
             uncapitalized = "Lowercase only",
             capitalized = "Uppercase only",
             regex = "Must match the specified pattern",
             open = "Open text",
-            field$format
+            string_format
           )
           
-          requirements[[length(requirements) + 1]] <- tags$li(
-            tags$strong("Text format: "),
-            validation_text
-          )
+          add_requirement("Text format: ", validation_text)
           
-          if (
-            !is.null(field$pattern) &&
-            !is.na(field$pattern)
-          ) {
-            
-            requirements[[length(requirements) + 1]] <- tags$li(
-              tags$strong("Pattern: "),
-              tags$code(field$pattern)
-            )
+          if (!is.null(field$pattern) && !is.na(field$pattern)) {
+            add_requirement("Pattern: ", tags$code(field$pattern))
           }
           
-          if (
-            !is.null(field$lowerlimit) &&
-            !is.na(field$lowerlimit)
-          ) {
-            
-            requirements[[length(requirements) + 1]] <- tags$li(
-              tags$strong("Minimum length: "),
-              field$lowerlimit
-            )
+          if (!is.null(field$lowerlimit) && !is.na(field$lowerlimit)) {
+            add_requirement("Minimum length: ", field$lowerlimit)
           }
           
-          if (
-            !is.null(field$upperlimit) &&
-            !is.na(field$upperlimit)
-          ) {
-            
-            requirements[[length(requirements) + 1]] <- tags$li(
-              tags$strong("Maximum length: "),
-              field$upperlimit
-            )
+          if (!is.null(field$upperlimit) && !is.na(field$upperlimit)) {
+            add_requirement("Maximum length: ", field$upperlimit)
           }
         }
-        
         
         tags$div(
           style = paste(
@@ -1403,19 +1157,14 @@ server <- function(input, output, session) {
             "background-color: #f9f9f9;"
           ),
           
-          h4(
-            style = "margin-top: 0;",
-            field_name
-          ),
+          h4(style = "margin-top: 0;", field_name),
           
           if (
             !is.null(field$description) &&
             !is.na(field$description) &&
             field$description != ""
           ) {
-            tags$p(
-              tags$em(field$description)
-            )
+            tags$p(tags$em(field$description))
           },
           
           tags$ul(requirements)
@@ -1423,6 +1172,7 @@ server <- function(input, output, session) {
       })
     )
   })
+  
   
   # Download codebook --------------------------------------------------------------------
   
@@ -1438,15 +1188,11 @@ server <- function(input, output, session) {
         
       } else {
         
-        specification_name <- paste(
-          input$study,
-          input$format,
-          sep = "_"
-        )
+        specification_name <- paste(input$study, input$format, sep = "_")
       }
       
       paste0(
-        specification_name,
+        gsub("[^A-Za-z0-9_.-]", "_", specification_name),
         "_codebook.xlsx"
       )
     },
@@ -1462,9 +1208,6 @@ server <- function(input, output, session) {
         
         requirements <- character(0)
         
-        
-        ## Data type
-        
         if (!is.null(field$type)) {
           
           if (identical(field$type, "options")) {
@@ -1472,217 +1215,134 @@ server <- function(input, output, session) {
             if (!is.null(field$options)) {
               
               options <- paste(
-                as.character(field$options),
+                as.character(unlist(field$options, use.names = FALSE)),
                 collapse = ", "
               )
               
-              requirements <- c(
-                requirements,
-                paste0(
-                  "Must be one of: ",
-                  options,
-                  "."
-                )
-              )
+              requirements <- c(requirements, paste0("Must be one of: ", options, "."))
             }
             
           } else if (identical(field$type, "numeric")) {
             
-            ## Numeric range
+            ## Numeric range (specifications use lowerlimit / upperlimit)
             
-            if (
-              !is.null(field$lower) &&
-              !is.null(field$upper)
-            ) {
-              
+            lower <- num_or(field$lowerlimit, NA)
+            upper <- num_or(field$upperlimit, NA)
+            
+            if (!is.na(lower) && !is.na(upper)) {
               requirements <- c(
                 requirements,
-                paste0(
-                  "Must be between ",
-                  field$lower,
-                  " and ",
-                  field$upper,
-                  "."
-                )
+                paste0("Must be between ", lower, " and ", upper, ".")
               )
-              
-            } else if (!is.null(field$lower)) {
-              
+            } else if (!is.na(lower)) {
+              requirements <- c(requirements, paste0("Must be at least ", lower, "."))
+            } else if (!is.na(upper)) {
               requirements <- c(
                 requirements,
-                paste0(
-                  "Must be at least ",
-                  field$lower,
-                  "."
-                )
-              )
-              
-            } else if (!is.null(field$upper)) {
-              
-              requirements <- c(
-                requirements,
-                paste0(
-                  "Must be no greater than ",
-                  field$upper,
-                  "."
-                )
+                paste0("Must be no greater than ", upper, ".")
               )
             }
-            
             
             ## Decimal requirements
             
-            if (
-              !is.null(field$allow_decimals) &&
-              identical(
-                tolower(as.character(field$allow_decimals)),
-                "no"
-              )
-            ) {
+            allow_dec <- flag(field$allow_decimals)
+            
+            if (isFALSE(allow_dec)) {
               
-              requirements <- c(
-                requirements,
-                "Whole numbers only."
-              )
+              requirements <- c(requirements, "Whole numbers only.")
               
-            } else if (
-              !is.null(field$min_decimals) &&
-              !is.null(field$max_decimals) &&
-              identical(
-                as.character(field$min_decimals),
-                as.character(field$max_decimals)
-              )
-            ) {
+            } else if (isTRUE(allow_dec)) {
               
-              requirements <- c(
-                requirements,
-                paste0(
-                  "Must have exactly ",
-                  field$min_decimals,
-                  " decimal places."
+              min_decimals <- num_or(field$min_decimals, NA)
+              max_decimals <- num_or(field$max_decimals, NA)
+              
+              if (!is.na(min_decimals) && !is.na(max_decimals) &&
+                  min_decimals == max_decimals) {
+                requirements <- c(
+                  requirements,
+                  paste0("Must have exactly ", min_decimals, " decimal places.")
                 )
-              )
-              
-            } else if (!is.null(field$max_decimals)) {
-              
-              requirements <- c(
-                requirements,
-                paste0(
-                  "May have up to ",
-                  field$max_decimals,
-                  " decimal places."
+              } else if (!is.na(max_decimals)) {
+                requirements <- c(
+                  requirements,
+                  paste0("May have up to ", max_decimals, " decimal places.")
                 )
-              )
-              
-            } else if (!is.null(field$min_decimals)) {
-              
-              requirements <- c(
-                requirements,
-                paste0(
-                  "Must have at least ",
-                  field$min_decimals,
-                  " decimal places."
+              } else if (!is.na(min_decimals)) {
+                requirements <- c(
+                  requirements,
+                  paste0("Must have at least ", min_decimals, " decimal places.")
                 )
-              )
+              }
             }
           }
-          
           
           ## String requirements
           
           if (identical(field$type, "string")) {
             
-            requirements <- c(
-              requirements,
-              "Text."
-            )
+            requirements <- c(requirements, "Text.")
+            
+            min_length <- num_or(field$lowerlimit, NA)
+            max_length <- num_or(field$upperlimit, NA)
+            
+            if (!is.na(min_length)) {
+              requirements <- c(
+                requirements,
+                paste0("At least ", min_length, " characters.")
+              )
+            }
+            
+            if (!is.na(max_length)) {
+              requirements <- c(
+                requirements,
+                paste0("No more than ", max_length, " characters.")
+              )
+            }
           }
         }
         
+        ## Regular expression (skip the NA pattern stored for non-pattern fields)
         
-        ## Regular expression
-        
-        if (!is.null(field$pattern)) {
+        if (
+          !is.null(field$pattern) &&
+          length(field$pattern) == 1 &&
+          !is.na(field$pattern)
+        ) {
           
           pattern <- as.character(field$pattern)
           
           if (identical(pattern, "^[A-Za-z0-9]+$")) {
-            
-            requirements <- c(
-              requirements,
-              "Letters and numbers only."
-            )
-            
-          } else if (
-            identical(pattern, "^[A-Za-z]+$")
-          ) {
-            
-            requirements <- c(
-              requirements,
-              "Letters only."
-            )
-            
-          } else if (
-            identical(pattern, "^[0-9]+$")
-          ) {
-            
-            requirements <- c(
-              requirements,
-              "Numbers only."
-            )
-            
+            requirements <- c(requirements, "Letters and numbers only.")
+          } else if (identical(pattern, "^[A-Za-z]+$")) {
+            requirements <- c(requirements, "Letters only.")
+          } else if (identical(pattern, "^[0-9]+$")) {
+            requirements <- c(requirements, "Numbers only.")
           } else {
-            
             requirements <- c(
               requirements,
-              paste0(
-                "Must match the required format: ",
-                pattern,
-                "."
-              )
+              paste0("Must match the required format: ", pattern, ".")
             )
           }
         }
-        
         
         ## Empty values
         
         if (!is.null(field$empty_allowed)) {
           
-          empty_allowed <- tolower(
-            as.character(field$empty_allowed)
-          )
+          empty_allowed <- flag(field$empty_allowed)
           
-          if (empty_allowed %in% c("no", "false")) {
-            
-            requirements <- c(
-              requirements,
-              "Empty values are not allowed."
-            )
-            
-          } else if (
-            empty_allowed %in% c("yes", "true")
-          ) {
-            
-            requirements <- c(
-              requirements,
-              "Empty values are allowed."
-            )
+          if (isFALSE(empty_allowed)) {
+            requirements <- c(requirements, "Empty values are not allowed.")
+          } else if (isTRUE(empty_allowed)) {
+            requirements <- c(requirements, "Empty values are allowed.")
           }
         }
         
-        
-        ## Combine requirements
-        
         if (length(requirements) == 0) {
-          
           return("")
         }
         
-        paste(
-          requirements,
-          collapse = " "
-        )
+        paste(requirements, collapse = " ")
       }
       
       
@@ -1700,9 +1360,7 @@ server <- function(input, output, session) {
               as.character(field$field)
             ),
             
-            `Validation requirements` = translate_requirements(
-              field
-            ),
+            `Validation requirements` = translate_requirements(field),
             
             Description = ifelse(
               is.null(field$description),
@@ -1711,22 +1369,15 @@ server <- function(input, output, session) {
             ),
             
             stringsAsFactors = FALSE,
-            
             check.names = FALSE
           )
         }
       )
       
-      
-      ## Write codebook
-      
-      openxlsx::write.xlsx(
-        codebook,
-        file,
-        overwrite = TRUE
-      )
+      openxlsx::write.xlsx(codebook, file, overwrite = TRUE)
     }
   )
+  
   
   # Specification creation ---------------------------------------------------------------
   
@@ -1735,25 +1386,35 @@ server <- function(input, output, session) {
   template_columns <- reactiveVal(NULL)
   
   observeEvent(input$template_file, {
+    
     req(input$template_file)
     
-    template <- readr::read_csv(
-      input$template_file$datapath,
-      n_max = 0,
-      show_col_types = FALSE
+    columns <- tryCatch(
+      {
+        template <- readr::read_csv(
+          input$template_file$datapath,
+          n_max = 0,
+          show_col_types = FALSE
+        )
+        
+        head(names(template), max_variables)
+      },
+      error = function(e) {
+        showNotification(
+          paste("Could not read the template dataset:", conditionMessage(e)),
+          type = "error",
+          duration = 10
+        )
+        NULL
+      }
     )
     
-    columns <- names(template)
+    req(columns)
     
     template_columns(columns)
     
-    updateNumericInput(
-      session,
-      "numVars",
-      value = length(columns)
-    )
+    updateNumericInput(session, "numVars", value = length(columns))
   })
-  
   
   
   # User-created specification
@@ -1763,7 +1424,7 @@ server <- function(input, output, session) {
     ids <- variable_ids()
     data_list <- list()
     
-    # Validate variable names ------------------------------------------------------------
+    # Validate variable names
     
     variable_names <- vapply(
       ids,
@@ -1781,15 +1442,11 @@ server <- function(input, output, session) {
     )
     
     if (any(variable_names == "")) {
-      stop(
-        "Every variable must have a name."
-      )
+      stop("Every variable must have a name.")
     }
     
     if (any(duplicated(variable_names))) {
-      stop(
-        "Variable names must be unique."
-      )
+      stop("Variable names must be unique.")
     }
     
     if (length(ids) > 0) {
@@ -1846,11 +1503,7 @@ server <- function(input, output, session) {
                 !is.na(option_value) &&
                 option_value != ""
               ) {
-                
-                options <- c(
-                  options,
-                  option_value
-                )
+                options <- c(options, option_value)
               }
             }
           }
@@ -1867,14 +1520,7 @@ server <- function(input, output, session) {
           
           validation <- input[[paste0("string_validation_", i)]]
           
-          if (
-            validation %in% c(
-              "letters",
-              "numbers",
-              "alphanumeric",
-              "examples"
-            )
-          ) {
+          if (validation %in% c("letters", "numbers", "alphanumeric", "examples")) {
             "regex"
           } else {
             validation
@@ -1910,7 +1556,17 @@ server <- function(input, output, session) {
               input[[paste0("example_5_", i)]]
             )
             
-            GenerateRegex(examples)
+            rx <- GenerateRegex(examples)
+            
+            # An NA pattern would produce a specification that validates nothing
+            if (is.na(rx)) {
+              stop(
+                "Could not build a pattern from the example values for variable '",
+                input[[paste0("field_name_", i)]], "'."
+              )
+            }
+            
+            rx
             
           } else {
             NA
@@ -1920,29 +1576,9 @@ server <- function(input, output, session) {
           NA
         }
         
-        required <- if (
-          input[[paste0("is_required_", i)]] == "yes"
-        ) {
-          TRUE
-        } else {
-          FALSE
-        }
-        
-        NA_allowed <- if (
-          input[[paste0("allow_na_", i)]] == "yes"
-        ) {
-          TRUE
-        } else {
-          FALSE
-        }
-        
-        empty_allowed <- if (
-          input[[paste0("allow_empty_", i)]] == "yes"
-        ) {
-          TRUE
-        } else {
-          FALSE
-        }
+        required <- input[[paste0("is_required_", i)]] == "yes"
+        NA_allowed <- input[[paste0("allow_na_", i)]] == "yes"
+        empty_allowed <- input[[paste0("allow_empty_", i)]] == "yes"
         
         data_list[[length(data_list) + 1]] <- list(
           field = input[[paste0("field_name_", i)]],
@@ -1977,9 +1613,7 @@ server <- function(input, output, session) {
           required = required,
           NA_allowed = NA_allowed,
           empty_allowed = empty_allowed,
-          error_message = toString(
-            input[[paste0("error_message_", i)]]
-          )
+          error_message = toString(input[[paste0("error_message_", i)]])
         )
       }
     }
@@ -1988,7 +1622,7 @@ server <- function(input, output, session) {
   })
   
   
-  # Create variable tabs ---------------------------------------------------------------
+  # Create variable tabs -----------------------------------------------------------------
   
   # Store the internal IDs of currently active variables
   
@@ -2047,10 +1681,7 @@ server <- function(input, output, session) {
             }
           ),
           
-          textInput(
-            paste0("field_description_", i),
-            "Description:"
-          ),
+          textInput(paste0("field_description_", i), "Description:"),
           
           br(),
           
@@ -2059,29 +1690,20 @@ server <- function(input, output, session) {
           selectInput(
             paste0("is_required_", i),
             "Is this variable required? (Selecting 'No' means the validator will not flag the dataset as invalid if this column is missing)",
-            choices = c(
-              "Yes" = "yes",
-              "No" = "no"
-            )
+            choices = c("Yes" = "yes", "No" = "no")
           ),
           
           selectInput(
             paste0("allow_na_", i),
             "Are NA values allowed?",
-            choices = c(
-              "Yes" = "yes",
-              "No" = "no"
-            ),
+            choices = c("Yes" = "yes", "No" = "no"),
             selected = "no"
           ),
           
           selectInput(
             paste0("allow_empty_", i),
             "Are empty cells allowed?",
-            choices = c(
-              "Yes" = "yes",
-              "No" = "no"
-            ),
+            choices = c("Yes" = "yes", "No" = "no"),
             selected = "no"
           )
         ),
@@ -2108,46 +1730,27 @@ server <- function(input, output, session) {
           # Numeric
           
           conditionalPanel(
-            condition = paste0(
-              "input.field_type_", i,
-              " == 'numeric'"
-            ),
+            condition = paste0("input.field_type_", i, " == 'numeric'"),
             
             h4("Numeric Settings"),
             
             selectInput(
               paste0("range_req_", i),
               "Are there range restrictions?",
-              choices = c(
-                "No" = "no",
-                "Yes" = "yes"
-              )
+              choices = c("No" = "no", "Yes" = "yes")
             ),
             
             conditionalPanel(
-              condition = paste0(
-                "input.range_req_", i,
-                " == 'yes'"
-              ),
+              condition = paste0("input.range_req_", i, " == 'yes'"),
               
               fluidRow(
-                
                 column(
                   width = 6,
-                  numericInput(
-                    paste0("min_value_", i),
-                    "Minimum:",
-                    value = NA
-                  )
+                  numericInput(paste0("min_value_", i), "Minimum:", value = NA)
                 ),
-                
                 column(
                   width = 6,
-                  numericInput(
-                    paste0("max_value_", i),
-                    "Maximum:",
-                    value = NA
-                  )
+                  numericInput(paste0("max_value_", i), "Maximum:", value = NA)
                 )
               )
             ),
@@ -2155,23 +1758,16 @@ server <- function(input, output, session) {
             selectInput(
               paste0("allow_decimals_", i),
               "Are decimals allowed?",
-              choices = c(
-                "No" = "no",
-                "Yes" = "yes"
-              ),
+              choices = c("No" = "no", "Yes" = "yes"),
               selected = "no"
             ),
             
             conditionalPanel(
-              condition = paste0(
-                "input.allow_decimals_", i,
-                " == 'yes'"
-              ),
+              condition = paste0("input.allow_decimals_", i, " == 'yes'"),
               
               h5("Decimal Places"),
               
               fluidRow(
-                
                 column(
                   width = 6,
                   selectInput(
@@ -2181,7 +1777,6 @@ server <- function(input, output, session) {
                     selected = 0
                   )
                 ),
-                
                 column(
                   width = 6,
                   selectInput(
@@ -2195,14 +1790,10 @@ server <- function(input, output, session) {
             )
           ),
           
-          
           # Options
           
           conditionalPanel(
-            condition = paste0(
-              "input.field_type_", i,
-              " == 'options'"
-            ),
+            condition = paste0("input.field_type_", i, " == 'options'"),
             
             h4("Option Settings"),
             
@@ -2213,19 +1804,13 @@ server <- function(input, output, session) {
               selected = 2
             ),
             
-            uiOutput(
-              paste0("option_fields_", i)
-            )
+            uiOutput(paste0("option_fields_", i))
           ),
-          
           
           # String
           
           conditionalPanel(
-            condition = paste0(
-              "input.field_type_", i,
-              " == 'string'"
-            ),
+            condition = paste0("input.field_type_", i, " == 'string'"),
             
             h4("String Settings"),
             
@@ -2244,43 +1829,17 @@ server <- function(input, output, session) {
             ),
             
             conditionalPanel(
-              condition = paste0(
-                "input.string_validation_", i,
-                " == 'examples'"
-              ),
+              condition = paste0("input.string_validation_", i, " == 'examples'"),
               
-              textInput(
-                paste0("example_1_", i),
-                "Example value 1:"
-              ),
+              textInput(paste0("example_1_", i), "Example value 1:"),
+              textInput(paste0("example_2_", i), "Example value 2:"),
+              textInput(paste0("example_3_", i), "Example value 3:"),
+              textInput(paste0("example_4_", i), "Example value 4:"),
+              textInput(paste0("example_5_", i), "Example value 5:"),
               
-              textInput(
-                paste0("example_2_", i),
-                "Example value 2:"
-              ),
+              helpText("Enter five examples of valid values."),
               
-              textInput(
-                paste0("example_3_", i),
-                "Example value 3:"
-              ),
-              
-              textInput(
-                paste0("example_4_", i),
-                "Example value 4:"
-              ),
-              
-              textInput(
-                paste0("example_5_", i),
-                "Example value 5:"
-              ),
-              
-              helpText(
-                "Enter five examples of valid values."
-              ),
-              
-              uiOutput(
-                paste0("example_validation_", i)
-              )
+              uiOutput(paste0("example_validation_", i))
             ),
             
             br(),
@@ -2288,36 +1847,20 @@ server <- function(input, output, session) {
             selectInput(
               paste0("range_req_string", i),
               "Are there length restrictions?",
-              choices = c(
-                "No" = "no",
-                "Yes" = "yes"
-              )
+              choices = c("No" = "no", "Yes" = "yes")
             ),
             
             conditionalPanel(
-              condition = paste0(
-                "input.range_req_string", i,
-                " == 'yes'"
-              ),
+              condition = paste0("input.range_req_string", i, " == 'yes'"),
               
               fluidRow(
-                
                 column(
                   width = 6,
-                  numericInput(
-                    paste0("min_value_s", i),
-                    "Minimum:",
-                    value = NA
-                  )
+                  numericInput(paste0("min_value_s", i), "Minimum:", value = NA)
                 ),
-                
                 column(
                   width = 6,
-                  numericInput(
-                    paste0("max_value_s", i),
-                    "Maximum:",
-                    value = NA
-                  )
+                  numericInput(paste0("max_value_s", i), "Maximum:", value = NA)
                 )
               )
             )
@@ -2326,7 +1869,6 @@ server <- function(input, output, session) {
       ),
       
       fluidRow(
-        
         column(
           width = 12,
           
@@ -2350,11 +1892,21 @@ server <- function(input, output, session) {
     
     new_num_vars <- input$numVars
     
-    if (
-      is.null(new_num_vars) ||
-      is.na(new_num_vars)
-    ) {
+    if (is.null(new_num_vars) || is.na(new_num_vars)) {
       return()
+    }
+    
+    # Whole numbers between 0 and max_variables only
+    
+    new_num_vars <- floor(new_num_vars)
+    
+    if (new_num_vars < 0) {
+      new_num_vars <- 0
+    }
+    
+    if (new_num_vars > max_variables) {
+      new_num_vars <- max_variables
+      updateNumericInput(session, "numVars", value = max_variables)
     }
     
     current_ids <- variable_ids()
@@ -2369,20 +1921,11 @@ server <- function(input, output, session) {
       new_ids <- integer(number_to_add)
       
       for (j in seq_len(number_to_add)) {
-        
         new_ids[j] <- next_variable_id()
-        
-        next_variable_id(
-          next_variable_id() + 1
-        )
+        next_variable_id(next_variable_id() + 1)
       }
       
-      updated_ids <- c(
-        current_ids,
-        new_ids
-      )
-      
-      variable_ids(updated_ids)
+      variable_ids(c(current_ids, new_ids))
       
       for (j in seq_along(new_ids)) {
         
@@ -2399,35 +1942,17 @@ server <- function(input, output, session) {
       }
     }
     
-    
-    # Remove variables from the end only when the
-    # numeric input itself is manually decreased
+    # Remove variables from the end only when the numeric input itself is decreased
     
     if (new_num_vars < current_count) {
       
-      ids_to_remove <- current_ids[
-        seq(
-          new_num_vars + 1,
-          current_count
-        )
-      ]
+      ids_to_remove <- current_ids[seq(new_num_vars + 1, current_count)]
       
       for (id in ids_to_remove) {
-        
-        removeTab(
-          inputId = "variable_tabs",
-          target = paste0(
-            "variable_",
-            id
-          )
-        )
+        removeTab(inputId = "variable_tabs", target = paste0("variable_", id))
       }
       
-      variable_ids(
-        current_ids[
-          seq_len(new_num_vars)
-        ]
-      )
+      variable_ids(current_ids[seq_len(new_num_vars)])
     }
   })
   
@@ -2450,57 +1975,33 @@ server <- function(input, output, session) {
         variable_id <- ids[j]
         
         observeEvent(
-          input[[paste0(
-            "delete_variable_",
-            variable_id
-          )]],
+          input[[paste0("delete_variable_", variable_id)]],
           {
-            
             current_ids <- variable_ids()
             
-            delete_position <- match(
-              variable_id,
-              current_ids
-            )
+            delete_position <- match(variable_id, current_ids)
             
             if (is.na(delete_position)) {
               return()
             }
             
-            # Remove the selected tab
-            
             removeTab(
               inputId = "variable_tabs",
-              target = paste0(
-                "variable_",
-                variable_id
-              )
+              target = paste0("variable_", variable_id)
             )
             
-            # Remove the selected ID
+            updated_ids <- current_ids[-delete_position]
             
-            updated_ids <- current_ids[
-              -delete_position
-            ]
+            variable_ids(updated_ids)
             
-            variable_ids(
-              updated_ids
-            )
-            
-            # Update the number displayed in the UI
-            
-            updateNumericInput(
-              session,
-              "numVars",
-              value = length(updated_ids)
-            )
-            
+            updateNumericInput(session, "numVars", value = length(updated_ids))
           },
           ignoreInit = TRUE
         )
       })
     }
   })
+  
   
   # Generate option inputs
   
@@ -2539,6 +2040,7 @@ server <- function(input, output, session) {
     }
   })
   
+  
   # Validate example inputs
   
   observe({
@@ -2555,10 +2057,7 @@ server <- function(input, output, session) {
           
           output[[paste0("example_validation_", j)]] <- renderUI({
             
-            validation <- input[[paste0(
-              "string_validation_",
-              j
-            )]]
+            validation <- input[[paste0("string_validation_", j)]]
             
             if (
               is.null(validation) ||
@@ -2576,11 +2075,7 @@ server <- function(input, output, session) {
               input[[paste0("example_5_", j)]]
             )
             
-            if (
-              any(is.null(examples)) ||
-              any(examples == "")
-            ) {
-              
+            if (any(is.null(examples)) || any(examples == "")) {
               return(
                 tags$p(
                   style = "color: red;",
@@ -2597,7 +2092,7 @@ server <- function(input, output, session) {
   })
   
   
-  # Download setup button ---------------------------------------------------------------
+  # Download setup button ----------------------------------------------------------------
   
   output$downloadSetupButton <- renderUI({
     
@@ -2607,7 +2102,7 @@ server <- function(input, output, session) {
       return(NULL)
     }
     
-    # Check variable names ---------------------------------------------------------------
+    # Check variable names
     
     variable_names <- vapply(
       ids,
@@ -2624,15 +2119,11 @@ server <- function(input, output, session) {
       character(1)
     )
     
-    missing_variable_names <- any(
-      variable_names == ""
-    )
+    missing_variable_names <- any(variable_names == "")
     
-    duplicate_variable_names <- any(
-      duplicated(variable_names[variable_names != ""])
-    )
+    duplicate_variable_names <- any(duplicated(variable_names[variable_names != ""]))
     
-    # Check numeric ranges ----------------------------------------------------------------
+    # Check numeric ranges
     
     invalid_numeric_ranges <- FALSE
     
@@ -2640,17 +2131,11 @@ server <- function(input, output, session) {
       
       field_type <- input[[paste0("field_type_", i)]]
       
-      if (
-        !is.null(field_type) &&
-        !is.na(field_type) &&
-        field_type == "numeric"
-      ) {
+      if (!is.null(field_type) && !is.na(field_type) && field_type == "numeric") {
         
         range_required <- input[[paste0("range_req_", i)]]
         
-        if (
-          identical(range_required, "yes")
-        ) {
+        if (identical(range_required, "yes")) {
           
           minimum <- input[[paste0("min_value_", i)]]
           maximum <- input[[paste0("max_value_", i)]]
@@ -2668,7 +2153,7 @@ server <- function(input, output, session) {
       }
     }
     
-    # Check string length ranges ----------------------------------------------------------
+    # Check string length ranges
     
     invalid_string_ranges <- FALSE
     
@@ -2676,17 +2161,11 @@ server <- function(input, output, session) {
       
       field_type <- input[[paste0("field_type_", i)]]
       
-      if (
-        !is.null(field_type) &&
-        !is.na(field_type) &&
-        field_type == "string"
-      ) {
+      if (!is.null(field_type) && !is.na(field_type) && field_type == "string") {
         
         range_required <- input[[paste0("range_req_string", i)]]
         
-        if (
-          identical(range_required, "yes")
-        ) {
+        if (identical(range_required, "yes")) {
           
           minimum <- input[[paste0("min_value_s", i)]]
           maximum <- input[[paste0("max_value_s", i)]]
@@ -2704,7 +2183,10 @@ server <- function(input, output, session) {
       }
     }
     
+    # Check example values
+    
     all_examples_complete <- TRUE
+    bad_example_pattern <- FALSE
     
     for (i in ids) {
       
@@ -2734,6 +2216,8 @@ server <- function(input, output, session) {
           any(examples == "")
         ) {
           all_examples_complete <- FALSE
+        } else if (is.na(GenerateRegex(examples))) {
+          bad_example_pattern <- TRUE
         }
       }
     }
@@ -2743,13 +2227,11 @@ server <- function(input, output, session) {
       !duplicate_variable_names &&
       !invalid_numeric_ranges &&
       !invalid_string_ranges &&
-      all_examples_complete
+      all_examples_complete &&
+      !bad_example_pattern
     ) {
       
-      downloadButton(
-        "downloadSetup",
-        "Download Setup"
-      )
+      downloadButton("downloadSetup", "Download Setup")
       
     } else {
       
@@ -2763,10 +2245,7 @@ server <- function(input, output, session) {
       }
       
       if (duplicate_variable_names) {
-        error_messages <- c(
-          error_messages,
-          "Variable names must be unique."
-        )
+        error_messages <- c(error_messages, "Variable names must be unique.")
       }
       
       if (invalid_numeric_ranges) {
@@ -2790,6 +2269,17 @@ server <- function(input, output, session) {
         )
       }
       
+      if (bad_example_pattern) {
+        error_messages <- c(
+          error_messages,
+          paste0(
+            "The example values don't share a recognisable pattern ",
+            "(a fixed prefix followed by digits or letters). ",
+            "Try more similar examples or a different string validation."
+          )
+        )
+      }
+      
       tagList(
         
         tags$button(
@@ -2802,12 +2292,7 @@ server <- function(input, output, session) {
         lapply(
           error_messages,
           function(message) {
-            tags$p(
-              tags$strong(
-                style = "color: red;",
-                message
-              )
-            )
+            tags$p(tags$strong(style = "color: red;", message))
           }
         )
       )
@@ -2815,18 +2300,14 @@ server <- function(input, output, session) {
   })
   
   
-  # Downloads ---------------------------------------------------------------------------
+  # Downloads ----------------------------------------------------------------------------
   
   # Download sample dataset
   
   output$downloadSampleDataset <- downloadHandler(
     
     filename = function() {
-      paste0(
-        "sample_dataset_",
-        Sys.Date(),
-        ".csv"
-      )
+      paste0("sample_dataset_", Sys.Date(), ".csv")
     },
     
     contentType = "text/csv",
@@ -2835,29 +2316,30 @@ server <- function(input, output, session) {
       
       fields <- selected_specification()
       
-      sample_dataset <- generate_sample_dataset(
-        fields,
-        n = 10
+      sample_dataset <- tryCatch(
+        generate_sample_dataset(fields, n = 10),
+        error = function(e) {
+          showNotification(
+            paste("Could not generate a sample dataset:", conditionMessage(e)),
+            type = "error",
+            duration = 10,
+            session = session
+          )
+          stop(e)
+        }
       )
       
-      readr::write_csv(
-        sample_dataset,
-        file,
-        na = ""
-      )
+      readr::write_csv(sample_dataset, file, na = "")
     }
   )
+  
   
   # Download specification
   
   output$downloadSetup <- downloadHandler(
     
     filename = function() {
-      paste0(
-        "data_settings_",
-        Sys.Date(),
-        ".yaml"
-      )
+      paste0("data_settings_", Sys.Date(), ".yaml")
     },
     
     contentType = "text/yaml",
@@ -2871,16 +2353,10 @@ server <- function(input, output, session) {
         # Write YAML to a temporary file first
         temp_file <- tempfile(fileext = ".yaml")
         
-        yaml::write_yaml(
-          data,
-          temp_file
-        )
+        yaml::write_yaml(data, temp_file)
         
         # Read the YAML as text
-        yaml_text <- readLines(
-          temp_file,
-          warn = FALSE
-        )
+        yaml_text <- readLines(temp_file, warn = FALSE)
         
         # Quote option values that YAML could interpret as logical values
         yaml_text <- gsub(
@@ -2896,23 +2372,14 @@ server <- function(input, output, session) {
         )
         
         # Write the modified YAML to the requested download file
-        writeLines(
-          yaml_text,
-          file,
-          useBytes = TRUE
-        )
+        writeLines(yaml_text, file, useBytes = TRUE)
         
         # Clean up temporary file
         unlink(temp_file)
         
       }, error = function(e) {
         
-        stop(
-          paste0(
-            "Could not create YAML file: ",
-            e$message
-          )
-        )
+        stop(paste0("Could not create YAML file: ", e$message))
       })
     }
   )
@@ -2930,7 +2397,6 @@ server <- function(input, output, session) {
     
     content = function(file) {
       
-      
       # Welcome message
       
       welcome_message <- NULL
@@ -2939,14 +2405,10 @@ server <- function(input, output, session) {
         
         welcome_message <- input$config_welcome_message
         
-        if (
-          is.null(welcome_message) ||
-          !nzchar(trimws(welcome_message))
-        ) {
+        if (is.null(welcome_message) || !nzchar(trimws(welcome_message))) {
           welcome_message <- NULL
         }
       }
-      
       
       # Secondary message
       
@@ -2956,14 +2418,10 @@ server <- function(input, output, session) {
         
         secondary_message <- input$config_secondary_message
         
-        if (
-          is.null(secondary_message) ||
-          !nzchar(trimws(secondary_message))
-        ) {
+        if (is.null(secondary_message) || !nzchar(trimws(secondary_message))) {
           secondary_message <- NULL
         }
       }
-      
       
       # Instruction Set 1
       
@@ -2973,20 +2431,13 @@ server <- function(input, output, session) {
         
         n_instructions <- input$num_instruction_lines
         
-        if (
-          !is.null(n_instructions) &&
-          !is.na(n_instructions) &&
-          n_instructions > 0
-        ) {
+        if (!is.null(n_instructions) && !is.na(n_instructions) && n_instructions > 0) {
           
           instructions <- vapply(
             seq_len(n_instructions),
             function(i) {
               
-              value <- input[[paste0(
-                "config_instruction_",
-                i
-              )]]
+              value <- input[[paste0("config_instruction_", i)]]
               
               if (is.null(value)) {
                 ""
@@ -2999,7 +2450,6 @@ server <- function(input, output, session) {
         }
       }
       
-      
       # Links
       
       links <- list()
@@ -3008,25 +2458,14 @@ server <- function(input, output, session) {
         
         n_links <- input$num_links
         
-        if (
-          !is.null(n_links) &&
-          !is.na(n_links) &&
-          n_links > 0
-        ) {
+        if (!is.null(n_links) && !is.na(n_links) && n_links > 0) {
           
           links <- lapply(
             seq_len(n_links),
             function(i) {
               
-              text <- input[[paste0(
-                "config_link_text_",
-                i
-              )]]
-              
-              url <- input[[paste0(
-                "config_link_url_",
-                i
-              )]]
+              text <- input[[paste0("config_link_text_", i)]]
+              url <- input[[paste0("config_link_url_", i)]]
               
               list(
                 text = if (is.null(text)) "" else text,
@@ -3036,7 +2475,6 @@ server <- function(input, output, session) {
           )
         }
       }
-      
       
       # Instruction Set 2
       
@@ -3056,10 +2494,7 @@ server <- function(input, output, session) {
             seq_len(n_upload_instructions),
             function(i) {
               
-              value <- input[[paste0(
-                "config_upload_instruction_",
-                i
-              )]]
+              value <- input[[paste0("config_upload_instruction_", i)]]
               
               if (is.null(value)) {
                 ""
@@ -3072,32 +2507,26 @@ server <- function(input, output, session) {
         }
       }
       
-      
       # Instruction set names
       
       instruction_set_1_name <- input$config_instruction_set_1_name
       
-      if (
-        is.null(instruction_set_1_name) ||
-        !nzchar(trimws(instruction_set_1_name))
-      ) {
+      if (is.null(instruction_set_1_name) || !nzchar(trimws(instruction_set_1_name))) {
         instruction_set_1_name <- "Instruction Set 1"
       }
       
       instruction_set_2_name <- input$config_instruction_set_2_name
       
-      if (
-        is.null(instruction_set_2_name) ||
-        !nzchar(trimws(instruction_set_2_name))
-      ) {
+      if (is.null(instruction_set_2_name) || !nzchar(trimws(instruction_set_2_name))) {
         instruction_set_2_name <- "Instruction Set 2"
       }
       
-      
       # Create configuration
+      # (the specification message comes from the configuration being edited,
+      # not from the default configuration)
       
       configuration <- list(
-        theme = input$config_theme,
+        theme = valid_theme(input$config_theme),
         app_title = input$config_app_title,
         welcome_message = welcome_message,
         secondary_message = secondary_message,
@@ -3106,29 +2535,20 @@ server <- function(input, output, session) {
         links = links,
         instruction_set_2_name = instruction_set_2_name,
         instruction_set_2 = upload_instructions,
-        specification_message = config$specification_message
+        specification_message = selected_config()$specification_message
       )
       
-      
-      # Write YAML
-      
-      yaml::write_yaml(
-        configuration,
-        file
-      )
+      yaml::write_yaml(configuration, file)
     }
   )
+  
   
   # Download edited dataset as Excel
   
   output$downloadHighlighted <- downloadHandler(
     
     filename = function() {
-      paste0(
-        "edited_dataset_",
-        Sys.Date(),
-        ".xlsx"
-      )
+      paste0("edited_dataset_", Sys.Date(), ".xlsx")
     },
     
     content = function(file) {
@@ -3136,42 +2556,29 @@ server <- function(input, output, session) {
       df <- edited_data()
       
       if (is.null(df)) {
-        stop(
-          "The edited dataset is not available."
-        )
+        stop("The edited dataset is not available.")
       }
       
       fields <- selected_specification()
       
-      validated <- validate_dataset(
-        fields,
-        df
-      )
+      validated <- validate_dataset(fields, df)
       
       issues <- validated[[2]]
       
       tryCatch(
         {
-          highlight_csv_to_xlsx_v2(
-            df,
-            issues,
-            file
-          )
+          highlight_csv_to_xlsx_v2(df, issues, file)
         },
         error = function(e) {
-          print(e)
-          stop(
-            paste0(
-              "Excel creation failed: ",
-              e$message
-            )
-          )
+          stop(paste0("Excel creation failed: ", e$message))
         }
       )
     }
   )
   
+  
   # Download standardized validated CSV
+  
   download_ready <- reactiveVal(FALSE)
   
   generate_download_code <- function(
@@ -3230,17 +2637,11 @@ server <- function(input, output, session) {
     
     if (download_ready()) {
       
-      downloadButton(
-        "downloadCSV_confirmed",
-        "Download Validated CSV File"
-      )
+      downloadButton("downloadCSV_confirmed", "Download Validated CSV File")
       
     } else {
       
-      actionButton(
-        "confirm_download",
-        "Continue"
-      )
+      actionButton("confirm_download", "Continue")
     }
   })
   
@@ -3250,14 +2651,11 @@ server <- function(input, output, session) {
     lab_id <- trimws(input$download_lab_id)
     
     if (!nzchar(lab_id)) {
-      showNotification(
-        "Lab ID is required.",
-        type = "error"
-      )
+      showNotification("Lab ID is required.", type = "error")
       return()
     }
     
-    if (!grepl("^[A-Za-z0-9-]+$", lab_id)) {
+    if (!is_valid_lab_id(lab_id)) {
       showNotification(
         "Lab ID may only contain letters, numbers, and hyphens.",
         type = "error"
@@ -3268,190 +2666,178 @@ server <- function(input, output, session) {
     download_ready(TRUE)
   })
   
-output$downloadCSV_confirmed <- downloadHandler(
   
-  filename = function() {
-    
-    lab_id <- trimws(input$download_lab_id)
-    
-    if (!nzchar(lab_id)) {
-      stop("Lab ID is required.")
-    }
-    
-    if (!grepl("^[A-Za-z0-9-]+$", lab_id)) {
-      stop(
-        "Lab ID may only contain letters, numbers, and hyphens."
-      )
-    }
-    
-    if (identical(input$specification_source, "local")) {
-      
-      study <- tools::file_path_sans_ext(
-        input$local_specification$name
-      )
-      
-      study_format <- "local"
-      
-    } else {
-      
-      study <- input$study
-      study_format <- input$format
-      
-    }
-    
-    # Remove characters that could cause problems in a filename
-    
-    lab_id_clean <- gsub(
-      "[^A-Za-z0-9_-]",
-      "_",
-      lab_id
-    )
-    
-    study_clean <- gsub(
-      "[^A-Za-z0-9_.-]",
-      "_",
-      study
-    )
-    
-    study_format_clean <- gsub(
-      "[^A-Za-z0-9_.-]",
-      "_",
-      study_format
-    )
-    
-    # Get the dataset that will be downloaded
-    
-    df <- edited_data()
-    
-    if (is.null(df)) {
-      stop(
-        "The edited dataset is not available. ",
-        "Please upload a dataset before attempting to download."
-      )
-    }
-    
-    # Create the exact CSV contents that will be downloaded
-    
-    temp_file <- tempfile(fileext = ".csv")
-    
-    readr::write_csv(
-      df,
-      temp_file,
-      na = ""
-    )
-    
-    csv_contents <- readBin(
-      temp_file,
-      what = "raw",
-      n = file.info(temp_file)$size
-    )
-    
-    unlink(temp_file)
-    
-    # Generate cryptographic code
-    
-    download_code <- generate_download_code(
-      lab_id = lab_id,
-      study = study,
-      study_format = study_format,
-      csv_contents = csv_contents,
-      secret_key = secret_key
-    )
-    
-    paste0(
-      lab_id_clean,
-      "_",
-      study_clean,
-      "_",
-      study_format_clean,
-      "_",
-      download_code,
-      ".csv"
-    )
-  },
+  # Confirm that the dataset currently passes validation. The download button is
+  # only hidden in the browser, so the server must check this itself before it
+  # signs a file.
   
-  contentType = "text/csv",
-  
-  content = function(file) {
-    
-    # Get edited dataset
-    
-    df <- edited_data()
-    
-    if (is.null(df)) {
-      stop(
-        "The edited dataset is not available. ",
-        "Please upload a dataset before attempting to download."
-      )
-    }
-    
-    # Write standardized CSV
-    
-    readr::write_csv(
-      df,
-      file,
-      na = ""
+  dataset_passes_validation <- function() {
+    isTRUE(
+      tryCatch(dataset_is_valid(), error = function(e) FALSE)
     )
   }
-)
   
   
-# Editable dataset
-
-edited_data <- reactiveVal(NULL)
-
-observeEvent(input$file, {
-  
-  req(input$file)
-  
-  delimiter <- detect_delimiter(
-    input$file$datapath
+  output$downloadCSV_confirmed <- downloadHandler(
+    
+    filename = function() {
+      
+      lab_id <- trimws(input$download_lab_id)
+      
+      if (!nzchar(lab_id)) {
+        stop("Lab ID is required.")
+      }
+      
+      if (!is_valid_lab_id(lab_id)) {
+        stop("Lab ID may only contain letters, numbers, and hyphens.")
+      }
+      
+      if (!dataset_passes_validation()) {
+        stop("The dataset must pass validation before a validated CSV can be downloaded.")
+      }
+      
+      if (identical(input$specification_source, "local")) {
+        
+        study <- tools::file_path_sans_ext(input$local_specification$name)
+        study_format <- "local"
+        
+      } else {
+        
+        study <- input$study
+        study_format <- input$format
+      }
+      
+      # Remove characters that could cause problems in a filename
+      
+      lab_id_clean <- gsub("[^A-Za-z0-9_-]", "_", lab_id)
+      study_clean <- gsub("[^A-Za-z0-9_.-]", "_", study)
+      study_format_clean <- gsub("[^A-Za-z0-9_.-]", "_", study_format)
+      
+      # Get the dataset that will be downloaded
+      
+      df <- edited_data()
+      
+      if (is.null(df)) {
+        stop(
+          "The edited dataset is not available. ",
+          "Please upload a dataset before attempting to download."
+        )
+      }
+      
+      # Create the exact CSV contents that will be downloaded
+      
+      temp_file <- tempfile(fileext = ".csv")
+      
+      readr::write_csv(df, temp_file, na = "")
+      
+      csv_contents <- readBin(
+        temp_file,
+        what = "raw",
+        n = file.info(temp_file)$size
+      )
+      
+      unlink(temp_file)
+      
+      # Generate cryptographic code
+      
+      download_code <- generate_download_code(
+        lab_id = lab_id,
+        study = study,
+        study_format = study_format,
+        csv_contents = csv_contents,
+        secret_key = secret_key
+      )
+      
+      paste0(
+        lab_id_clean, "_",
+        study_clean, "_",
+        study_format_clean, "_",
+        download_code,
+        ".csv"
+      )
+    },
+    
+    contentType = "text/csv",
+    
+    content = function(file) {
+      
+      if (!dataset_passes_validation()) {
+        stop("The dataset must pass validation before a validated CSV can be downloaded.")
+      }
+      
+      df <- edited_data()
+      
+      if (is.null(df)) {
+        stop(
+          "The edited dataset is not available. ",
+          "Please upload a dataset before attempting to download."
+        )
+      }
+      
+      # Write standardized CSV
+      
+      readr::write_csv(df, file, na = "")
+    }
   )
   
-  req(!is.null(delimiter))
   
-  decimal_mark <- detect_decimal_mark(
-    input$file$datapath,
-    delimiter
-  )
+  # Editable dataset ---------------------------------------------------------------------
   
-  df <- readr::read_delim(
-    input$file$datapath,
-    delim = delimiter,
-    col_types = readr::cols(.default = readr::col_character()),
-    na = "NA",
-    show_col_types = FALSE
-  )
+  edited_data <- reactiveVal(NULL)
   
-  df <- standardize_decimal_mark(
-    df,
-    decimal_mark
-  )
+  observeEvent(input$file, {
+    
+    req(input$file)
+    
+    df <- tryCatch(
+      {
+        delimiter <- detect_delimiter(input$file$datapath)
+        
+        if (is.null(delimiter)) {
+          stop("Could not detect the CSV delimiter (a file needs at least two columns).")
+        }
+        
+        decimal_mark <- detect_decimal_mark(input$file$datapath, delimiter)
+        
+        imported <- readr::read_delim(
+          input$file$datapath,
+          delim = delimiter,
+          col_types = readr::cols(.default = readr::col_character()),
+          na = "NA",
+          show_col_types = FALSE
+        )
+        
+        standardize_decimal_mark(imported, decimal_mark)
+      },
+      error = function(e) {
+        showNotification(
+          paste("Could not read the dataset:", conditionMessage(e)),
+          type = "error",
+          duration = 10
+        )
+        NULL
+      }
+    )
+    
+    # Dataset values are never printed to the log
+    
+    edited_data(df)
+  })
   
-  print("VALUES AFTER CSV IMPORT AND DECIMAL STANDARDIZATION:")
-  print(df)
-  print("IS NA:")
-  print(is.na(df))
-  
-  edited_data(df)
-  
-})
   
   # Check whether edited dataset is valid
   
-dataset_is_valid <- reactive({
+  dataset_is_valid <- reactive({
+    
+    req(edited_data())
+    
+    fields <- selected_specification()
+    
+    validated <- validate_dataset(fields, edited_data())
+    
+    validated[[1]]
+  })
   
-  req(edited_data())
-  
-  fields <- selected_specification()
-  
-  validated <- validate_dataset(
-    fields,
-    edited_data()
-  )
-  
-  validated[[1]]
-})
   
   # Show CSV download only when dataset is valid
   
@@ -3459,11 +2845,8 @@ dataset_is_valid <- reactive({
     dataset_is_valid()
   })
   
-  outputOptions(
-    output,
-    "csv_validated",
-    suspendWhenHidden = FALSE
-  )
+  outputOptions(output, "csv_validated", suspendWhenHidden = FALSE)
+  
   
   # Store table edits
   
@@ -3476,14 +2859,10 @@ dataset_is_valid <- reactive({
     req(df)
     
     edited_data(
-      DT::editData(
-        df,
-        info,
-        rownames = FALSE
-      )
+      DT::editData(df, info, rownames = FALSE)
     )
-    
   })
+  
   
   # Validation preview
   
@@ -3497,10 +2876,7 @@ dataset_is_valid <- reactive({
     
     req(df)
     
-    validated <- validate_dataset(
-      fields,
-      df
-    )
+    validated <- validate_dataset(fields, df)
     
     issues <- validated[[2]]
     
@@ -3515,7 +2891,6 @@ dataset_is_valid <- reactive({
         next
       }
       
-      
       # Invalid cells
       
       if (issue$type == "invalid_cell") {
@@ -3523,10 +2898,7 @@ dataset_is_valid <- reactive({
         column_name <- issue$column
         rows <- as.integer(issue$invalid_row)
         
-        if (
-          column_name %in% names(df) &&
-          length(rows) > 0
-        ) {
+        if (column_name %in% names(df) && length(rows) > 0) {
           
           column_index <- which(names(df) == column_name) - 1
           
@@ -3539,7 +2911,6 @@ dataset_is_valid <- reactive({
           }
         }
       }
-      
       
       # Unexpected columns
       
@@ -3557,32 +2928,18 @@ dataset_is_valid <- reactive({
       }
     }
     
-    unexpected_column_indices <- unique(
-      unexpected_column_indices
-    )
-    
-    print(unexpected_column_indices)
-    
+    unexpected_column_indices <- unique(unexpected_column_indices)
     
     # Create JavaScript for cell highlighting
     
     highlight_js <- if (length(invalid_cells) > 0) {
       
-      cells_json <- jsonlite::toJSON(
-        invalid_cells,
-        auto_unbox = TRUE
-      )
-      
-      columns_json <- jsonlite::toJSON(
-        unexpected_column_indices,
-        auto_unbox = TRUE
-      )
+      cells_json <- jsonlite::toJSON(invalid_cells, auto_unbox = TRUE)
       
       DT::JS(
         paste0(
           "function(row, data, displayNum, displayIndex, dataIndex) {",
           "  var invalidCells = ", cells_json, ";",
-          "  var unexpectedColumns = ", columns_json, ";",
           "  invalidCells.forEach(function(cell) {",
           "    if (cell.row === dataIndex) {",
           "      $('td', row).eq(cell.column).css('background-color', 'yellow');",
@@ -3594,11 +2951,23 @@ dataset_is_valid <- reactive({
       
     } else {
       
-      DT::JS(
-        "function(row, data, displayNum, displayIndex, dataIndex) {}"
-      )
+      DT::JS("function(row, data, displayNum, displayIndex, dataIndex) {}")
     }
     
+    # Only add the column definition when there are unexpected columns
+    
+    column_defs <- if (length(unexpected_column_indices) > 0) {
+      list(
+        list(
+          targets = unexpected_column_indices,
+          createdCell = DT::JS(
+            "function(td) { $(td).css('background-color', 'yellow'); }"
+          )
+        )
+      )
+    } else {
+      list()
+    }
     
     # Create editable table
     
@@ -3617,22 +2986,14 @@ dataset_is_valid <- reactive({
         pageLength = 10,
         scrollX = TRUE,
         rowCallback = highlight_js,
-        columnDefs = list(
-          list(
-            targets = unexpected_column_indices,
-            createdCell = DT::JS(
-              "function(td) {
-            $(td).css('background-color', 'yellow');
-          }"
-            )
-          )
-        )
+        columnDefs = column_defs
       ),
       rownames = FALSE
     )
-    
   })
-  # Validation errors
+  
+  
+  # Validation errors --------------------------------------------------------------------
   
   output$errors_by_column <- renderUI({
     
@@ -3659,28 +3020,17 @@ dataset_is_valid <- reactive({
           tags$div(
             class = "validation-summary validation-summary-success",
             
-            tags$div(
-              class = "validation-summary-title",
-              "Error Summary"
-            ),
+            tags$div(class = "validation-summary-title", "Error Summary"),
             
-            tags$div(
-              class = "validation-summary-count",
-              "✓ No issues found"
-            ),
+            tags$div(class = "validation-summary-count", "✓ No issues found"),
             
             tags$div(
               class = "validation-summary-details",
-              paste0(
-                "All ",
-                nrow(df),
-                " rows passed the selected specification."
-              )
+              paste0("All ", nrow(df), " rows passed the selected specification.")
             )
           )
         )
       }
-      
       
       # Count issue types
       
@@ -3688,8 +3038,7 @@ dataset_is_valid <- reactive({
         vapply(
           issues,
           function(issue) {
-            !is.null(issue) &&
-              issue$type == "missing_column"
+            !is.null(issue) && issue$type == "missing_column"
           },
           logical(1)
         )
@@ -3699,8 +3048,7 @@ dataset_is_valid <- reactive({
         vapply(
           issues,
           function(issue) {
-            !is.null(issue) &&
-              issue$type == "unexpected_column"
+            !is.null(issue) && issue$type == "unexpected_column"
           },
           logical(1)
         )
@@ -3708,12 +3056,10 @@ dataset_is_valid <- reactive({
       
       invalid_cell_issues <- Filter(
         function(issue) {
-          !is.null(issue) &&
-            issue$type == "invalid_cell"
+          !is.null(issue) && issue$type == "invalid_cell"
         },
         issues
       )
-      
       
       # Count invalid cells
       
@@ -3727,22 +3073,15 @@ dataset_is_valid <- reactive({
         )
       )
       
-      
       # Count affected rows
       
-      affected_rows <- unique(
-        unlist(
-          lapply(
-            invalid_cell_issues,
-            function(issue) {
-              issue$invalid_row
-            }
+      affected_rows <- length(
+        unique(
+          unlist(
+            lapply(invalid_cell_issues, function(issue) issue$invalid_row)
           )
         )
       )
-      
-      affected_rows <- length(affected_rows)
-      
       
       # Count affected columns
       
@@ -3760,69 +3099,41 @@ dataset_is_valid <- reactive({
         )
       )
       
-      affected_columns <- sum(
-        !is.na(affected_columns)
-      )
-      
+      affected_columns <- sum(!is.na(affected_columns))
       
       # Total number of issues
       
-      total_issues <- missing_columns +
-        unexpected_columns +
-        invalid_cells
-      
+      total_issues <- missing_columns + unexpected_columns + invalid_cells
       
       return(
         tags$div(
           class = "validation-summary",
           
-          tags$div(
-            class = "validation-summary-title",
-            "Error Summary"
-          ),
+          tags$div(class = "validation-summary-title", "Error Summary"),
           
           tags$div(
             class = "validation-summary-count",
             paste0(
               total_issues,
-              if (total_issues == 1) {
-                " issue found"
-              } else {
-                " issues found"
-              }
+              if (total_issues == 1) " issue found" else " issues found"
             )
           ),
           
           tags$div(
             class = "validation-summary-details",
             
-            tags$div(
-              tags$strong("Rows affected: "),
-              affected_rows
-            ),
+            tags$div(tags$strong("Rows affected: "), affected_rows),
             
-            tags$div(
-              tags$strong("Columns affected: "),
-              affected_columns
-            ),
+            tags$div(tags$strong("Columns affected: "), affected_columns),
             
-            tags$div(
-              tags$strong("Invalid cells: "),
-              invalid_cells
-            ),
+            tags$div(tags$strong("Invalid cells: "), invalid_cells),
             
             if (missing_columns > 0) {
-              tags$div(
-                tags$strong("Missing columns: "),
-                missing_columns
-              )
+              tags$div(tags$strong("Missing columns: "), missing_columns)
             },
             
             if (unexpected_columns > 0) {
-              tags$div(
-                tags$strong("Unexpected columns: "),
-                unexpected_columns
-              )
+              tags$div(tags$strong("Unexpected columns: "), unexpected_columns)
             }
           )
         )
@@ -3839,7 +3150,6 @@ dataset_is_valid <- reactive({
         
         tags$div(
           class = "validation-errors-header",
-          
           tags$div("Where"),
           tags$div("Error"),
           tags$div("Explanation")
@@ -3854,21 +3164,9 @@ dataset_is_valid <- reactive({
       
       tags$div(
         class = "validation-error-row",
-        
-        tags$div(
-          class = "validation-error-location-cell",
-          location
-        ),
-        
-        tags$div(
-          class = "validation-error-cell",
-          error
-        ),
-        
-        tags$div(
-          class = "validation-explanation-cell",
-          explanation
-        )
+        tags$div(class = "validation-error-location-cell", location),
+        tags$div(class = "validation-error-cell", error),
+        tags$div(class = "validation-explanation-cell", explanation)
       )
     }
     
@@ -3878,7 +3176,6 @@ dataset_is_valid <- reactive({
     if (identical(input$error_view, "row")) {
       
       error_rows <- list()
-      
       
       # Missing and unexpected columns
       
@@ -3891,39 +3188,21 @@ dataset_is_valid <- reactive({
         if (issue$type == "missing_column") {
           
           error_rows[[length(error_rows) + 1]] <- error_row(
-            
             location = "Dataset",
-            
-            error = paste0(
-              "Missing required column: '",
-              issue$column,
-              "'."
-            ),
-            
-            explanation = explain_error(
-              issue,
-              fields
-            )
+            error = paste0("Missing required column: '", issue$column, "'."),
+            explanation = explain_error(issue, fields)
           )
         }
         
         if (issue$type == "unexpected_column") {
           
           error_rows[[length(error_rows) + 1]] <- error_row(
-            
             location = "Dataset",
-            
-            error = paste0(
-              "Unexpected column: '",
-              issue$column,
-              "'."
-            ),
-            
+            error = paste0("Unexpected column: '", issue$column, "'."),
             explanation = "This column does not exist in the selected specification."
           )
         }
       }
-      
       
       # Collect cell errors
       
@@ -3963,44 +3242,30 @@ dataset_is_valid <- reactive({
         }
       }
       
-      
       # Sort cell errors by row
       
       if (length(cell_errors) > 0) {
         
         rows <- sort(
           unique(
-            vapply(
-              cell_errors,
-              function(x) x$row,
-              numeric(1)
-            )
+            vapply(cell_errors, function(x) x$row, numeric(1))
           )
         )
         
         for (row in rows) {
           
-          this_row <- Filter(
-            function(x) x$row == row,
-            cell_errors
-          )
+          this_row <- Filter(function(x) x$row == row, cell_errors)
           
           for (error in this_row) {
             
             error_rows[[length(error_rows) + 1]] <- error_row(
-              
-              location = paste0(
-                "Row ",
-                row
-              ),
-              
+              location = paste0("Row ", row),
               error = paste0(
                 error$column,
                 " = '",
                 as.character(error$value),
                 "'"
               ),
-              
               explanation = error$explanation
             )
           }
@@ -4030,23 +3295,12 @@ dataset_is_valid <- reactive({
           
           return(
             error_row(
-              
               location = "Dataset",
-              
-              error = paste0(
-                "Missing required column: '",
-                issue$column,
-                "'."
-              ),
-              
-              explanation = explain_error(
-                issue,
-                fields
-              )
+              error = paste0("Missing required column: '", issue$column, "'."),
+              explanation = explain_error(issue, fields)
             )
           )
         }
-        
         
         # Unexpected columns
         
@@ -4054,59 +3308,31 @@ dataset_is_valid <- reactive({
           
           return(
             error_row(
-              
               location = "Dataset",
-              
-              error = paste0(
-                "Unexpected column: '",
-                issue$column,
-                "'."
-              ),
-              
+              error = paste0("Unexpected column: '", issue$column, "'."),
               explanation = "This column does not exist in the selected specification."
             )
           )
         }
         
-        
         # Invalid cells
         
-        rows <- sort(
-          unique(issue$invalid_row)
-        )
+        rows <- sort(unique(issue$invalid_row))
         
-        row_text <- paste(
-          rows,
-          collapse = ", "
-        )
+        row_text <- paste(rows, collapse = ", ")
         
         error_row(
-          
-          location = paste0(
-            "Column ",
-            issue$column
-          ),
-          
-          error = paste0(
-            "Contains invalid cells in rows: ",
-            row_text,
-            "."
-          ),
-          
-          explanation = explain_error(
-            issue,
-            fields
-          )
+          location = paste0("Column ", issue$column),
+          error = paste0("Contains invalid cells in rows: ", row_text, "."),
+          explanation = explain_error(issue, fields)
         )
       }
     )
-    
     
     tagList(
       h4("Errors by column"),
       error_table(error_rows)
     )
   })
-  
   
 }
