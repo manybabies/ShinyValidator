@@ -1,5 +1,35 @@
 # Changelog
 
+## [2.1.0] - 2026-10-13
+
+### Added
+
+- Added: Verify Certified File function, which lets an admin or data processor upload a certified CSV and check against the server's secret key that it passed validation and has not been changed since
+- Added: Automated test suite (`tests/`), covering the validation rules, security checks, bundled specifications and configurations, certified file signing and verification, and the running app
+
+### Changed
+
+- Changed: `server.R` renamed to `app_server.R`, so the project folder is no longer ambiguous between the `app.R` and `server.R` launch styles
+- Changed: The signing function for certified files moved to `common.R` and is shared by the download and the new verification. The file name format and codes are unchanged, so previously certified files still verify
+- Changed: Stricter, more predictable validation. A field with no `required` setting is now treated as required; missing `NA_allowed` or `empty_allowed` settings mean not allowed; numeric values must be plain numbers; a value without a decimal point fails when decimal places are required; a regular-expression field with a missing or invalid pattern now gives an error instead of passing silently
+- Changed: Darker error text colour for better contrast
+- Removed: Unused `shinythemes` dependency
+
+### Security
+
+- YAML files are now read without evaluating code, with a 1 MB size limit
+- The selected configuration, study and format are checked against files that actually exist before any file is opened
+- Configuration links are only shown if they use `http://` or `https://`, and open with `rel="noopener noreferrer"`
+- The server re-checks the Lab ID and that the dataset passes validation at the moment of a certified download, instead of relying on the button being hidden
+- Dataset values are no longer printed to the server log
+- Uploads are limited to 50 MB, and unreadable dataset, specification or configuration files now show a message instead of ending the session
+
+### Fixed
+
+- Fixed: Codebook now uses the correct range limits, string lengths and wording, and no longer prints "NA" as a pattern
+- Fixed: Generate sample dataset now respects numeric limits and decimal places, capitalization, and string lengths, and reports a clear message when example values have no recognisable pattern
+- Fixed: Decimal-place checks for numeric fields
+
 ## [2.0.7] - 2026-10-06
 
 - Removed: Custom logo functions; currently deprecated, fix impending
