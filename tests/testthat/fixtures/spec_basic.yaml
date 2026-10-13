@@ -1,0 +1,43 @@
+- field: participant_id
+  description: Participant identifier
+  type: string
+  format: regex
+  pattern: "^P[0-9]+$"
+  required: true
+  NA_allowed: false
+  empty_allowed: false
+  error_message: ""
+- field: age
+  description: Age in years
+  type: numeric
+  format: restricted
+  lowerlimit: 0
+  upperlimit: 120
+  allow_decimals: "no"
+  required: true
+  NA_allowed: false
+  empty_allowed: false
+- field: score
+  description: Test score
+  type: numeric
+  format: open
+  allow_decimals: "yes"
+  min_decimals: 2
+  max_decimals: 2
+  required: true
+  NA_allowed: false
+  empty_allowed: true
+- field: group
+  description: Study arm
+  type: options
+  options: ["control", "treatment"]
+  required: true
+  NA_allowed: false
+  empty_allowed: false
+- field: notes
+  description: Free text
+  type: string
+  format: open
+  required: false
+  NA_allowed: true
+  empty_allowed: true

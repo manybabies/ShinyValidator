@@ -1,0 +1,11 @@
+theme: purple
+app_title: "Custom Validator"
+welcome_message: "Welcome!"
+instruction_set_1_name: "Before you start"
+instruction_set_1: ["Step one", "Step two"]
+links:
+  - text: "Safe"
+    url: "https://example.org"
+  - text: "Evil"
+    url: "javascript:alert(1)"
+specification_message: "Spec message"
