@@ -21,7 +21,7 @@ use_local_spec <- function(app, path = fx("spec_basic.yaml")) {
   app$upload_file(local_specification = path)
 }
 
-summary_text <- function(app) app$get_text(".validation-summary")
+summary_text <- function(app) app$get_text("#errors_by_column .validation-summary")
 
 text_of <- function(app, id) {
   app$wait_for_idle()
@@ -34,6 +34,10 @@ text_of <- function(app, id) {
 test_that("app boots with the default configuration and no R errors", {
   app <- new_app("boot")
   default <- yaml::read_yaml(file.path(app_dir, "configuration", "config_Default.yaml"))
+  app$wait_for_js(
+    "document.getElementById('app_title') && document.getElementById('app_title').textContent.trim().length > 0",
+    timeout = 20000
+  )
   expect_equal(text_of(app, "app_title"), default$app_title)
   expect_true(app$get_js("document.body.classList.contains('text-size-default')"))
   logs <- app$get_logs()
@@ -341,4 +345,91 @@ test_that("verify page: untouched file verifies, edited file does not", {
   app$upload_file(verify_file = fx("valid.csv"))
   app$wait_for_idle()
   expect_match(text_of(app, "verify_fields"), "Not a certified file")
+})
+
+# Suggested fixes ---------------------------------------------------------------------------
+
+test_that("suggested fixes: nothing changes until approved; apply, undo and change log", {
+  app <- new_app("fixes")
+  
+  use_local_spec(app)
+  app$upload_file(file = fx("fixable.csv"))
+  app$wait_for_idle()
+  
+  # Proposals are shown but nothing has been changed
+  expect_match(text_of(app, "errors_by_column"), "2 issues found")
+  expect_match(text_of(app, "suggested_fixes_panel"), "2 changes can be made")
+  
+  # Approve everything
+  app$click("select_all_fixes")
+  app$wait_for_idle()
+  app$click("apply_fixes")
+  app$wait_for_idle()
+  expect_match(text_of(app, "errors_by_column"), "No issues found")
+  expect_match(text_of(app, "suggested_fixes_panel"), "change log \\(2\\)")
+  
+  # The Excel report carries the change log
+  sheets <- openxlsx::getSheetNames(app$get_download("downloadHighlighted"))
+  expect_true("Change Log" %in% sheets)
+  
+  # Undo brings the errors back and is itself logged
+  app$click("undo_fixes")
+  app$wait_for_idle()
+  expect_match(text_of(app, "errors_by_column"), "2 issues found")
+  expect_match(text_of(app, "suggested_fixes_panel"), "change log \\(4\\)")
+})
+
+test_that("suggested fixes: applying with nothing selected changes nothing", {
+  app <- new_app("fixes-none")
+  
+  use_local_spec(app)
+  app$upload_file(file = fx("fixable.csv"))
+  app$wait_for_idle()
+  
+  app$click("apply_fixes")
+  app$wait_for_idle()
+  expect_match(text_of(app, "errors_by_column"), "2 issues found")
+})
+
+test_that("suggested fixes: a configuration can switch them off", {
+  app <- new_app("fixes-off")
+  
+  cfg <- c(readLines(fx("config_custom.yaml"), warn = FALSE), "allow_suggested_fixes: no")
+  app$set_inputs(configuration_source = "local")
+  app$upload_file(local_configuration = write_tmp(cfg, ".yaml"))
+  app$wait_for_idle()
+  
+  use_local_spec(app)
+  app$upload_file(file = fx("fixable.csv"))
+  app$wait_for_idle()
+  
+  expect_match(text_of(app, "errors_by_column"), "2 issues found")
+  expect_equal(text_of(app, "suggested_fixes_panel"), "")
+})
+
+test_that("suggested fixes: Select all skips the 'check this one' fixes", {
+  app <- new_app("fixes-check")
+  
+  use_local_spec(app, fx("spec_fixes.yaml"))
+  app$upload_file(file = fx("mixed.csv"))
+  app$wait_for_idle()
+  
+  panel <- text_of(app, "suggested_fixes_panel")
+  expect_match(panel, "4 changes can be made")
+  expect_match(panel, "Check this one")
+  expect_match(panel, "Select all safe fixes")
+  
+  # Select all picks only the two safe fixes
+  app$click("select_all_fixes")
+  app$wait_for_idle()
+  app$click("apply_fixes")
+  app$wait_for_idle()
+  expect_match(text_of(app, "errors_by_column"), "2 issues found")
+  
+  # The two judgement calls stay until the person ticks them
+  app$run_js("Shiny.setInputValue('suggested_fixes_table_rows_selected', [1, 2], {priority: 'event'})")
+  app$wait_for_idle()
+  app$click("apply_fixes")
+  app$wait_for_idle()
+  expect_match(text_of(app, "errors_by_column"), "No issues found")
 })

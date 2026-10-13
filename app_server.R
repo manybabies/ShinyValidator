@@ -639,6 +639,15 @@ server <- function(input, output, session) {
       
       uiOutput("theme_preview"),
       
+      checkboxInput(
+        "config_allow_fixes",
+        paste(
+          "Allow suggested fixes (the validator proposes corrections such as",
+          "capitalization, which the user must approve before they are applied)"
+        ),
+        value = !isFALSE(flag(current_config$allow_suggested_fixes))
+      ),
+      
       p(
         "Customize the text and links used by your ShinyValidator. ",
         "The fields below are pre-populated with the current configuration."
@@ -2535,7 +2544,8 @@ server <- function(input, output, session) {
         links = links,
         instruction_set_2_name = instruction_set_2_name,
         instruction_set_2 = upload_instructions,
-        specification_message = selected_config()$specification_message
+        specification_message = selected_config()$specification_message,
+        allow_suggested_fixes = !isFALSE(input$config_allow_fixes)
       )
       
       yaml::write_yaml(configuration, file)
@@ -2568,6 +2578,28 @@ server <- function(input, output, session) {
       tryCatch(
         {
           highlight_csv_to_xlsx_v2(df, issues, file)
+          
+          # Add the record of applied suggested fixes, if there is one
+          
+          changes <- fix_log()
+          
+          if (nrow(changes) > 0) {
+            
+            names(changes) <- c(
+              "Time", "Action", "Row", "Column", "From", "To", "Reason"
+            )
+            
+            wb <- openxlsx::loadWorkbook(file)
+            openxlsx::addWorksheet(wb, "Change Log")
+            openxlsx::writeData(
+              wb,
+              "Change Log",
+              changes,
+              headerStyle = openxlsx::createStyle(textDecoration = "bold")
+            )
+            openxlsx::setColWidths(wb, "Change Log", cols = 1:7, widths = "auto")
+            openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
+          }
         },
         error = function(e) {
           stop(paste0("Excel creation failed: ", e$message))
@@ -3140,7 +3172,7 @@ server <- function(input, output, session) {
     }
     
     div(
-      class = "validation-summary",
+      class = "validation-summary suggested-fixes",
       role = "region",
       `aria-label` = "Suggested fixes",
       
@@ -3156,8 +3188,20 @@ server <- function(input, output, session) {
             )
           ),
           DT::DTOutput("suggested_fixes_table"),
+          if (any(fixes$confidence == "check")) {
+            p(
+              tags$strong("Check this one: "),
+              "these changes involve a judgement (for example reading \"y\" as ",
+              "\"yes\", or restoring leading zeros). They are not included in ",
+              "\"Select all safe fixes\". Look at each one and tick it yourself ",
+              "if it is right."
+            )
+          },
           br(),
-          actionButton("select_all_fixes", "Select all"),
+          actionButton(
+            "select_all_fixes",
+            if (any(fixes$confidence == "check")) "Select all safe fixes" else "Select all"
+          ),
           actionButton("apply_fixes", "Apply selected fixes")
         )
       } else {
@@ -3196,22 +3240,28 @@ server <- function(input, output, session) {
       Current = fixes$current,
       Proposed = fixes$proposed,
       Reason = fixes$reason,
+      Review = ifelse(fixes$confidence == "check", "Check this one", "Safe"),
       check.names = FALSE,
       stringsAsFactors = FALSE
     )
     
-    DT::datatable(
-      shown,
-      rownames = FALSE,
-      selection = "multiple",
-      options = list(pageLength = 10, dom = "tip")
+    DT::formatStyle(
+      DT::datatable(
+        shown,
+        rownames = FALSE,
+        selection = "multiple",
+        options = list(pageLength = 10, dom = "tip")
+      ),
+      "Review",
+      fontWeight = DT::styleEqual("Check this one", "bold")
     )
   })
   
   fixes_proxy <- DT::dataTableProxy("suggested_fixes_table")
   
   observeEvent(input$select_all_fixes, {
-    DT::selectRows(fixes_proxy, seq_len(nrow(proposed_fixes())))
+    fixes <- proposed_fixes()
+    DT::selectRows(fixes_proxy, which(fixes$confidence == "safe"))
   })
   
   observeEvent(input$apply_fixes, {

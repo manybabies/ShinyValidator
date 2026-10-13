@@ -1177,16 +1177,250 @@ verify_download_code <- function(lab_id, study, study_format, csv_contents, clai
 
 # Suggested fixes --------------------------------------------------------------------------
 
-# Looks at the cells that currently fail validation and proposes safe, mechanical
-# corrections. Nothing is changed here: the result is a table of proposals that a person
-# reviews and approves. Only these fixes are proposed:
-#   * leading/trailing spaces removed
-#   * a value that matches an allowed option except for capitalization (or spaces)
-#   * capitalization required by a string field ("capitalized" = upper, "uncapitalized" = lower)
-#   * a decimal comma written for a decimal point in a numeric field
-# A proposal is only returned if the proposed value passes ALL of the field's own checks.
-# NA and empty cells are never touched. A field with `auto_fix: no` is skipped.
+# Looks at the cells that currently fail validation and proposes mechanical corrections.
+# Nothing is changed here: the result is a table of proposals that a person reviews and
+# approves. A proposal is only returned if the proposed value passes ALL of the field's own
+# checks. NA and empty cells are never touched. A field with `auto_fix: no` is skipped.
+#
+# Each proposal has a confidence:
+#   "safe"  - only the way the value is written changes, not what it says
+#   "check" - a judgement call (yes/no synonyms, restored leading zeros) that a person must
+#             look at individually
+#
+# Fixes tried (smallest change first):
+#   all fields   : unusual characters (non-breaking spaces, zero-width characters), leading and
+#                  trailing spaces, repeated spaces
+#   options      : match ignoring capitalization; match ignoring spacing, punctuation and
+#                  accents; yes/no synonyms (check)
+#   string       : the capitalization the specification requires; for regex fields, a case or
+#                  spacing variant when exactly one variant fits the pattern; restored
+#                  leading zeros when exactly one length fits (check)
+#   numeric      : decimal comma; special minus signs andfull-width digits; trailing zeros removed or added
+#
 # Values like "1,234" are not changed, because the comma could be a thousands separator.
+
+fix_strip_accents <- function(x) {
+  
+  from <- intToUtf8(c(0xe0:0xe5, 0xe7:0xef, 0xf1:0xf6, 0xf9:0xfd, 0xff))
+  to <- paste0("aaaaaa", "ceeeeiiii", "nooooo", "uuuuy", "y")
+  
+  chartr(from, to, tolower(x))
+}
+
+# Spacing, punctuation, accents and capitalization removed, for comparing option names
+fix_key <- function(x) {
+  gsub("[^a-z0-9]", "", fix_strip_accents(x))
+}
+
+# Replaces every character with the given Unicode code points by `with`
+fix_replace_chars <- function(x, codes, with) {
+  
+  for (ch in intToUtf8(codes, multiple = TRUE)) {
+    x <- gsub(ch, with, x, fixed = TRUE)
+  }
+  
+  x
+}
+
+# Candidate fixes for one cell, in order of preference
+fix_candidates <- function(v, field) {
+  
+  type <- as.character(field$type)[1]
+  format <- field$format
+  options <- as.character(unlist(field$options, use.names = FALSE))
+  
+  out <- list()
+  
+  add <- function(value, reasons, confidence = "safe", mode = "ordered") {
+    out[[length(out) + 1]] <<- data.frame(
+      value = value,
+      reason = paste(reasons, collapse = "; "),
+      confidence = confidence,
+      mode = mode,
+      stringsAsFactors = FALSE
+    )
+  }
+  
+  cur <- v
+  why <- character(0)
+  
+  # Unusual characters
+  
+  cleaned <- fix_replace_chars(cur, c(0xA0, 0x2007, 0x202F), " ")
+  cleaned <- fix_replace_chars(cleaned, c(0x200B, 0x200C, 0x200D, 0xFEFF), "")
+  
+  if (identical(type, "numeric")) {
+    cleaned <- fix_replace_chars(cleaned, c(0x2212, 0x2013, 0x2014), "-")
+    cleaned <- chartr(intToUtf8(0xFF10:0xFF19), "0123456789", cleaned)
+    cleaned <- fix_replace_chars(cleaned, 0xFF0E, ".")
+    cleaned <- fix_replace_chars(cleaned, 0xFF0C, ",")
+  }
+  
+  if (!identical(cleaned, cur)) {
+    cur <- cleaned
+    why <- c(why, "Replaced unusual characters (such as non-breaking spaces or special minus signs)")
+  }
+  
+  # Spaces
+  
+  trimmed <- trimws(cur)
+  if (!identical(trimmed, cur)) {
+    cur <- trimmed
+    why <- c(why, "Removed leading or trailing spaces")
+  }
+  
+  collapsed <- gsub("[[:space:]]{2,}", " ", cur)
+  if (!identical(collapsed, cur)) {
+    cur <- collapsed
+    why <- c(why, "Collapsed repeated spaces")
+  }
+  
+  if (length(why) > 0) {
+    add(cur, why)
+  }
+  
+  # Options
+  
+  if (identical(type, "options")) {
+    
+    m <- unique(options[tolower(options) == tolower(cur)])
+    
+    if (length(m) == 1) {
+      
+      if (!identical(m, cur)) {
+        add(m, c(why, sprintf("Matches the allowed option \"%s\" apart from capitalization", m)))
+      }
+      
+    } else if (length(m) == 0) {
+      
+      key <- fix_key(cur)
+      
+      if (nzchar(key)) {
+        
+        km <- unique(options[fix_key(options) == key])
+        
+        if (length(km) == 1) {
+          add(km, c(why, sprintf(
+            "Matches the allowed option \"%s\" apart from capitalization, spacing or accents", km)))
+        }
+      }
+      
+      if (length(options) == 2) {
+        
+        lo <- tolower(options)
+        yes_opt <- options[lo %in% c("yes", "true")]
+        no_opt <- options[lo %in% c("no", "false")]
+        
+        if (length(yes_opt) == 1 && length(no_opt) == 1) {
+          
+          lc <- tolower(cur)
+          
+          if (lc %in% c("y", "t", "1", "yes", "true")) {
+            add(yes_opt, c(why, sprintf("Read as the yes option \"%s\"", yes_opt)), "check")
+          } else if (lc %in% c("n", "f", "0", "no", "false")) {
+            add(no_opt, c(why, sprintf("Read as the no option \"%s\"", no_opt)), "check")
+          }
+        }
+      }
+    }
+  }
+  
+  # Strings
+  
+  if (identical(type, "string")) {
+    
+    if (identical(format, "capitalized")) {
+      
+      up <- toupper(cur)
+      if (!identical(up, cur)) add(up, c(why, "The specification requires upper case"))
+      
+    } else if (identical(format, "uncapitalized")) {
+      
+      low <- tolower(cur)
+      if (!identical(low, cur)) add(low, c(why, "The specification requires lower case"))
+      
+    } else if (identical(format, "regex")) {
+      
+      nospace <- gsub("[[:space:]]", "", cur)
+      
+      variants <- unique(c(
+        toupper(cur), tolower(cur), nospace, toupper(nospace), tolower(nospace)
+      ))
+      variants <- variants[variants != cur]
+      
+      for (vv in variants) {
+        add(vv, c(why, "Capitalization or spacing changed to match the required pattern"),
+            "safe", "unique")
+      }
+    }
+    
+    # Restored leading zeros (only if exactly one length fits)
+    
+    if (grepl("^[0-9]+$", cur)) {
+      for (extra in 1:8) {
+        add(paste0(strrep("0", extra), cur), c(why, "Leading zeros restored"),
+            "check", "unique")
+      }
+    }
+  }
+  
+  # Numbers
+  
+  if (identical(type, "numeric")) {
+    
+    s <- cur
+    swhy <- why
+    
+    if (grepl("^-?[0-9]+,[0-9]+$", s) && !grepl(",[0-9]{3}$", s)) {
+      s <- sub(",", ".", s, fixed = TRUE)
+      swhy <- c(swhy, "Decimal comma changed to a decimal point")
+    }
+    
+    
+    if (!identical(s, cur)) {
+      add(s, swhy)
+    }
+    
+    if (grepl("^-?[0-9]+(\\.[0-9]*)?$", s)) {
+      
+      int <- sub("\\..*$", "", s)
+      dec <- if (grepl(".", s, fixed = TRUE)) sub("^[^.]*\\.", "", s) else ""
+      
+      # Trailing zeros removed (never removes a non-zero digit)
+      
+      if (nchar(dec) > 0) {
+        
+        for (n in (nchar(dec) - 1):0) {
+          
+          if (grepl("[^0]", substr(dec, n + 1, nchar(dec)))) break
+          
+          shorter <- if (n == 0) int else paste0(int, ".", substr(dec, 1, n))
+          
+          add(shorter, c(swhy, "Trailing zeros removed (the value is unchanged)"))
+        }
+      }
+      
+      # Trailing zeros added (the value is unchanged)
+      
+      for (n in 1:6) {
+        
+        longer <- paste0(int, ".", dec, strrep("0", n))
+        
+        add(longer, c(swhy, "Trailing zeros added to reach the required number of decimal places (the value is unchanged)"))
+      }
+    }
+  }
+  
+  if (length(out) == 0) {
+    return(data.frame(value = character(0), reason = character(0),
+                      confidence = character(0), mode = character(0),
+                      stringsAsFactors = FALSE))
+  }
+  
+  do.call(rbind, out)
+}
+
+
 suggest_fixes <- function(fields, dataset_contents) {
   
   empty <- data.frame(
@@ -1195,6 +1429,7 @@ suggest_fixes <- function(fields, dataset_contents) {
     current = character(0),
     proposed = character(0),
     reason = character(0),
+    confidence = character(0),
     stringsAsFactors = FALSE
   )
   
@@ -1220,80 +1455,63 @@ suggest_fixes <- function(fields, dataset_contents) {
     rows <- rows[!is.na(x[rows]) & x[rows] != ""]
     if (length(rows) == 0) next
     
-    type <- as.character(field$type)[1]
-    format <- field$format
-    options <- as.character(unlist(field$options, use.names = FALSE))
-    
-    proposed <- character(length(rows))
-    reasons <- character(length(rows))
+    pool <- list()
     
     for (k in seq_along(rows)) {
       
-      cur <- x[rows[k]]
-      why <- character(0)
+      cand <- fix_candidates(x[rows[k]], field)
       
-      trimmed <- trimws(cur)
-      if (!identical(trimmed, cur)) {
-        cur <- trimmed
-        why <- c(why, "Removed leading or trailing spaces")
+      if (nrow(cand) > 0) {
+        cand$cell <- k
+        pool[[length(pool) + 1]] <- cand
       }
-      
-      if (identical(type, "options")) {
-        
-        m <- unique(options[tolower(options) == tolower(cur)])
-        
-        if (length(m) == 1 && !identical(m, cur)) {
-          cur <- m
-          why <- c(why, sprintf(
-            "Matches the allowed option \"%s\" apart from capitalization", m))
-        }
-        
-      } else if (identical(type, "string") && identical(format, "capitalized")) {
-        
-        up <- toupper(cur)
-        if (!identical(up, cur)) {
-          cur <- up
-          why <- c(why, "The specification requires upper case")
-        }
-        
-      } else if (identical(type, "string") && identical(format, "uncapitalized")) {
-        
-        low <- tolower(cur)
-        if (!identical(low, cur)) {
-          cur <- low
-          why <- c(why, "The specification requires lower case")
-        }
-        
-      } else if (identical(type, "numeric")) {
-        
-        if (grepl("^-?[0-9]+,[0-9]+$", cur) && !grepl(",[0-9]{3}$", cur)) {
-          cur <- sub(",", ".", cur, fixed = TRUE)
-          why <- c(why, "Decimal comma changed to a decimal point")
-        }
-      }
-      
-      proposed[k] <- cur
-      reasons[k] <- paste(why, collapse = "; ")
     }
     
-    keep <- nzchar(reasons) & proposed != x[rows]
-    if (!any(keep)) next
+    if (length(pool) == 0) next
     
-    # Only keep proposals that pass every check the field has
-    test <- data.frame(proposed[keep], stringsAsFactors = FALSE)
+    pool <- do.call(rbind, pool)
+    pool <- pool[pool$value != x[rows[pool$cell]], , drop = FALSE]
+    if (nrow(pool) == 0) next
+    
+    # Keep only candidates that pass every check the field has
+    
+    test <- data.frame(pool$value, stringsAsFactors = FALSE)
     names(test) <- col
     
     chk <- validate_dataset_field(test, field)
     still_bad <- if (isTRUE(chk[[1]])) integer(0) else chk[[2]]$invalid_row
-    ok <- setdiff(seq_len(nrow(test)), still_bad)
-    if (length(ok) == 0) next
+    
+    pool <- pool[!(seq_len(nrow(pool)) %in% still_bad), , drop = FALSE]
+    if (nrow(pool) == 0) next
+    
+    # One proposal per cell: the first passing "ordered" candidate, otherwise the single
+    # passing "unique" candidate
+    
+    picked <- lapply(split(seq_len(nrow(pool)), pool$cell), function(ix) {
+      
+      sub <- pool[ix, , drop = FALSE]
+      
+      ord <- sub[sub$mode == "ordered", , drop = FALSE]
+      if (nrow(ord) > 0) return(ord[1, , drop = FALSE])
+      
+      uni <- sub[sub$mode == "unique", , drop = FALSE]
+      if (length(unique(uni$value)) == 1) return(uni[1, , drop = FALSE])
+      
+      NULL
+    })
+    
+    picked <- do.call(rbind, picked)
+    if (is.null(picked) || nrow(picked) == 0) next
+    
+    picked <- picked[order(picked$cell), , drop = FALSE]
     
     found[[length(found) + 1]] <- data.frame(
-      row = as.integer(rows[keep][ok]),
+      row = as.integer(rows[picked$cell]),
       column = col,
-      current = x[rows[keep][ok]],
-      proposed = proposed[keep][ok],
-      reason = reasons[keep][ok],
+      current = x[rows[picked$cell]],
+      proposed = picked$value,
+      reason = picked$reason,
+      confidence = picked$confidence,
       stringsAsFactors = FALSE
     )
   }

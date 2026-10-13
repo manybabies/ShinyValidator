@@ -1,0 +1,19 @@
+- field: consent
+  type: options
+  options: ['yes', 'no']
+  required: yes
+  NA_allowed: no
+  empty_allowed: no
+- field: pid
+  type: string
+  format: regex
+  pattern: '^[0-9]{3}$'
+  required: yes
+  NA_allowed: no
+  empty_allowed: no
+- field: group
+  type: options
+  options: [control, treatment]
+  required: yes
+  NA_allowed: no
+  empty_allowed: no

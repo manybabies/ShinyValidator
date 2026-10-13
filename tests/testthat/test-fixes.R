@@ -86,7 +86,7 @@ test_that("valid data and missing columns give an empty table with the right col
   
   none <- suggest_fixes(list(f), df1("code", c("ABC", "DEF")))
   expect_equal(nrow(none), 0)
-  expect_equal(names(none), c("row", "column", "current", "proposed", "reason"))
+  expect_equal(names(none), c("row", "column", "current", "proposed", "reason", "confidence"))
   
   expect_equal(nrow(suggest_fixes(list(f), df1("other", "abc"))), 0)
   expect_equal(nrow(suggest_fixes(list(f), NULL)), 0)
