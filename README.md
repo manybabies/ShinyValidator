@@ -12,6 +12,12 @@ Fork or download this repository to customize it for your project, and use it as
 
 You can find a live version of this template [here](https://manybabies.shinyapps.io/shinyvalidator/).
 
+## Citing ShinyValidator
+
+If you use ShinyValidator in academic work, please cite it. Citation details are in [`CITATION.cff`](CITATION.cff), and GitHub's **Cite this repository** link (in the right-hand sidebar of the repository page) will generate a ready-to-copy citation in APA or BibTeX format. Each release is also archived on Zenodo, which provides a permanent DOI.
+
+ShinyValidator is released under the [MIT License](LICENSE).
+
 ## Components of this repository
 
 This documentation is divided into seven sections:
