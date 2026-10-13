@@ -1061,3 +1061,116 @@ generate_sample_dataset <- function(fields, n = 10) {
   # Keeps column names such as "Participant ID" intact
   tibble::as_tibble(sample_data, .name_repair = "minimal")
 }
+
+# Certified CSV signing and verification ---------------------------------------------------
+
+# Same formula the app has always used, so existing certified files keep verifying.
+generate_download_code <- function(lab_id, study, study_format, csv_contents, secret_key) {
+  
+  message <- paste(
+    lab_id,
+    study,
+    study_format,
+    rawToChar(csv_contents),
+    sep = "|"
+  )
+  
+  substr(
+    digest::hmac(
+      key = secret_key,
+      object = message,
+      algo = "sha256",
+      serialize = FALSE
+    ),
+    1,
+    16
+  )
+}
+
+
+# Reads "LabID_Study_Format_CODE.csv" and returns the parts it can recover.
+# Returns NULL when the name does not look like a certified file.
+parse_certified_filename <- function(filename) {
+  
+  if (is.null(filename) || length(filename) != 1 || is.na(filename)) {
+    return(NULL)
+  }
+  
+  base <- sub("\\.csv$", "", basename(filename), ignore.case = TRUE)
+  parts <- strsplit(base, "_", fixed = TRUE)[[1]]
+  
+  if (length(parts) < 4) {
+    return(NULL)
+  }
+  
+  code <- tolower(parts[length(parts)])
+  
+  if (!grepl("^[0-9a-f]{16}$", code)) {
+    return(NULL)
+  }
+  
+  middle <- parts[2:(length(parts) - 1)]
+  
+  list(
+    lab_id = parts[1],
+    code = code,
+    study_guess = if (length(middle) == 2) middle[1] else NA_character_,
+    format_guess = if (length(middle) == 2) middle[2] else NA_character_,
+    middle = paste(middle, collapse = "_")
+  )
+}
+
+
+# Checks a certified CSV against the server's secret key.
+# csv_contents is the raw bytes of the file exactly as uploaded.
+verify_download_code <- function(lab_id, study, study_format, csv_contents, claimed_code, secret_key) {
+  
+  fail <- function(reason) list(verified = FALSE, reason = reason)
+  
+  lab_id <- trimws(lab_id)
+  claimed_code <- tolower(trimws(claimed_code))
+  
+  if (!nzchar(lab_id) || !grepl("^[A-Za-z0-9-]+$", lab_id)) {
+    return(fail("The Lab ID is missing or contains characters that are not allowed."))
+  }
+  
+  if (is.null(study) || is.na(study) || !nzchar(trimws(study)) ||
+      is.null(study_format) || is.na(study_format) || !nzchar(trimws(study_format))) {
+    return(fail("Study and format are required."))
+  }
+  
+  if (!grepl("^[0-9a-f]{16}$", claimed_code)) {
+    return(fail("The code in the file name is not a valid 16-character code."))
+  }
+  
+  if (is.null(secret_key) || !nzchar(secret_key)) {
+    return(fail("The server has no signing key configured."))
+  }
+  
+  expected <- tryCatch(
+    generate_download_code(
+      lab_id = lab_id,
+      study = trimws(study),
+      study_format = trimws(study_format),
+      csv_contents = csv_contents,
+      secret_key = secret_key
+    ),
+    error = function(e) NA_character_
+  )
+  
+  if (is.na(expected)) {
+    return(fail("The file could not be read as text."))
+  }
+  
+  if (identical(expected, claimed_code)) {
+    list(verified = TRUE, reason = "")
+  } else {
+    list(
+      verified = FALSE,
+      reason = paste(
+        "The code does not match. The file was changed after it was certified,",
+        "or the Lab ID, study or format is not the one it was certified with."
+      )
+    )
+  }
+}

@@ -1082,7 +1082,8 @@ ui <- fluidPage(
             "Validation Results" = "validation_results",
             "Specification Details" = "specification",
             "Specification Creation" = "specification_creation",
-            "Configuration Creation" = "configuration_creation"
+            "Configuration Creation" = "configuration_creation",
+            "Verify Certified File" = "verify_certified"
           ),
           selected = "validation_results"
         )
@@ -1242,6 +1243,36 @@ ui <- fluidPage(
           class = "content-card",
           
           uiOutput("configuration_creation_content")
+        )
+      ),
+      
+      
+      ## Verify Certified File
+      
+      conditionalPanel(
+        condition = "input.page == 'verify_certified'",
+        
+        div(
+          class = "content-card",
+          
+          h3("Verify a Certified CSV"),
+          
+          p(
+            "Upload a CSV that was downloaded from this app with the ",
+            "\"Download Validated CSV File\" button. The app checks the code in ",
+            "the file name against this server's secret key and tells you whether ",
+            "the file is exactly the one that passed validation."
+          ),
+          
+          fileInput(
+            "verify_file",
+            "Certified CSV file",
+            accept = c(".csv", "text/csv")
+          ),
+          
+          uiOutput("verify_fields"),
+          
+          uiOutput("verify_result")
         )
       )
     )

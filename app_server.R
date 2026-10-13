@@ -2581,33 +2581,6 @@ server <- function(input, output, session) {
   
   download_ready <- reactiveVal(FALSE)
   
-  generate_download_code <- function(
-    lab_id,
-    study,
-    study_format,
-    csv_contents,
-    secret_key
-  ) {
-    
-    message <- paste(
-      lab_id,
-      study,
-      study_format,
-      rawToChar(csv_contents),
-      sep = "|"
-    )
-    
-    substr(
-      digest::hmac(
-        key = secret_key,
-        object = message,
-        algo = "sha256",
-        serialize = FALSE
-      ),
-      1,
-      16
-    )
-  }
   
   observeEvent(input$downloadCSV, {
     
@@ -2780,6 +2753,108 @@ server <- function(input, output, session) {
     }
   )
   
+  # Verify certified file ----------------------------------------------------------------
+  
+  verify_outcome <- reactiveVal(NULL)
+  
+  observeEvent(input$verify_file, {
+    verify_outcome(NULL)
+  })
+  
+  output$verify_fields <- renderUI({
+    
+    req(input$verify_file)
+    
+    parsed <- parse_certified_filename(input$verify_file$name)
+    
+    if (is.null(parsed)) {
+      return(
+        div(
+          class = "validation-summary",
+          role = "status",
+          tags$div(class = "validation-summary-title", "Verification result"),
+          tags$div(class = "validation-summary-count", "✖ Not a certified file"),
+          tags$div(
+            class = "validation-summary-details",
+            "The file name should look like LabID_Study_Format_CODE.csv, ",
+            "as produced by the \"Download Validated CSV File\" button. ",
+            "Do not rename certified files."
+          )
+        )
+      )
+    }
+    
+    study_guess <- if (is.na(parsed$study_guess)) "" else parsed$study_guess
+    format_guess <- if (is.na(parsed$format_guess)) "" else parsed$format_guess
+    
+    tagList(
+      textInput("verify_lab_id", "Lab ID", value = parsed$lab_id),
+      textInput("verify_study", "Study", value = study_guess),
+      textInput("verify_format", "Format", value = format_guess),
+      if (is.na(parsed$study_guess)) {
+        p(
+          "The study and format could not be separated automatically from \"",
+          parsed$middle,
+          "\". Enter them exactly as they were when the file was certified."
+        )
+      },
+      actionButton("verify_button", "Verify file")
+    )
+  })
+  
+  observeEvent(input$verify_button, {
+    
+    req(input$verify_file)
+    
+    parsed <- parse_certified_filename(input$verify_file$name)
+    req(parsed)
+    
+    path <- input$verify_file$datapath
+    
+    bytes <- readBin(path, what = "raw", n = file.info(path)$size)
+    
+    verify_outcome(
+      verify_download_code(
+        lab_id = input$verify_lab_id,
+        study = input$verify_study,
+        study_format = input$verify_format,
+        csv_contents = bytes,
+        claimed_code = parsed$code,
+        secret_key = secret_key
+      )
+    )
+  })
+  
+  output$verify_result <- renderUI({
+    
+    outcome <- verify_outcome()
+    req(outcome)
+    
+    if (isTRUE(outcome$verified)) {
+      
+      div(
+        class = "validation-summary validation-summary-success",
+        role = "status",
+        tags$div(class = "validation-summary-title", "Verification result"),
+        tags$div(class = "validation-summary-count", "✓ Verified"),
+        tags$div(
+          class = "validation-summary-details",
+          "This file is exactly the one that passed validation and was ",
+          "certified by this server."
+        )
+      )
+      
+    } else {
+      
+      div(
+        class = "validation-summary",
+        role = "status",
+        tags$div(class = "validation-summary-title", "Verification result"),
+        tags$div(class = "validation-summary-count", "✖ Not verified"),
+        tags$div(class = "validation-summary-details", outcome$reason)
+      )
+    }
+  })
   
   # Editable dataset ---------------------------------------------------------------------
   
