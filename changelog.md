@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.2.1] - 2026-10-13
+
+### Added
+
+- Added: Suggested fixes. When some invalid cells have an obvious correction (for example a value typed in the wrong case), a **Suggested fixes** panel proposes it. Nothing is changed until the user selects the fixes and approves them
+- Added: Each suggestion is marked **Safe** or **Check this one**, with a **Select all safe fixes** shortcut
+- Added: **Undo last applied fixes** button, and a **Change log** of every change made in the session
+- Added: **Change Log** sheet in the downloaded Excel file, listing every applied fix
+- Added: `allow_suggested_fixes` setting in the configuration, and a matching checkbox in Configuration Creation, to turn suggested fixes off for a project
+- Added: `auto_fix: no` setting for a single variable in a specification, to stop that variable from ever being offered a fix
+- Added: `suggest_fixes()` and `apply_fixes()` in `common.R`. A proposed value is only offered if it passes the field's own rules, and a fix is skipped if the cell has been edited since it was proposed
+- Added: Automated tests for suggested fixes (`test-fixes.R`, `test-fixes-extra.R`) and for the fixes panel in the running app
+
+### Changed
+
+- Changed: README documents suggested fixes, the new settings, and a note that `yes` and `no` option values must be quoted in hand-written YAML (`'yes'`, `'no'`), because unquoted they are read as true and false
+
 ## [2.1.0] - 2026-10-13
 
 ### Added
@@ -76,7 +93,7 @@
 
 ### Added
 
-- Added Specification Creation functionality.
+- Added Functionality: Specification Creation.
 - Added Configuration Creation functionality.
 - Added customizable project configurations.
 - Added Errors by Row, and Errors by Column views.
