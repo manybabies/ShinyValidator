@@ -1174,3 +1174,166 @@ verify_download_code <- function(lab_id, study, study_format, csv_contents, clai
     )
   }
 }
+
+# Suggested fixes --------------------------------------------------------------------------
+
+# Looks at the cells that currently fail validation and proposes safe, mechanical
+# corrections. Nothing is changed here: the result is a table of proposals that a person
+# reviews and approves. Only these fixes are proposed:
+#   * leading/trailing spaces removed
+#   * a value that matches an allowed option except for capitalization (or spaces)
+#   * capitalization required by a string field ("capitalized" = upper, "uncapitalized" = lower)
+#   * a decimal comma written for a decimal point in a numeric field
+# A proposal is only returned if the proposed value passes ALL of the field's own checks.
+# NA and empty cells are never touched. A field with `auto_fix: no` is skipped.
+# Values like "1,234" are not changed, because the comma could be a thousands separator.
+suggest_fixes <- function(fields, dataset_contents) {
+  
+  empty <- data.frame(
+    row = integer(0),
+    column = character(0),
+    current = character(0),
+    proposed = character(0),
+    reason = character(0),
+    stringsAsFactors = FALSE
+  )
+  
+  if (is.null(dataset_contents) || length(fields) == 0) {
+    return(empty)
+  }
+  
+  found <- list()
+  
+  for (field in fields) {
+    
+    col <- as.character(field$field)
+    
+    if (!(col %in% names(dataset_contents))) next
+    if (identical(flag(field$auto_fix), FALSE)) next
+    
+    x <- as.character(dataset_contents[[col]])
+    
+    res <- validate_dataset_field(dataset_contents, field)
+    if (isTRUE(res[[1]])) next
+    
+    rows <- res[[2]]$invalid_row
+    rows <- rows[!is.na(x[rows]) & x[rows] != ""]
+    if (length(rows) == 0) next
+    
+    type <- as.character(field$type)[1]
+    format <- field$format
+    options <- as.character(unlist(field$options, use.names = FALSE))
+    
+    proposed <- character(length(rows))
+    reasons <- character(length(rows))
+    
+    for (k in seq_along(rows)) {
+      
+      cur <- x[rows[k]]
+      why <- character(0)
+      
+      trimmed <- trimws(cur)
+      if (!identical(trimmed, cur)) {
+        cur <- trimmed
+        why <- c(why, "Removed leading or trailing spaces")
+      }
+      
+      if (identical(type, "options")) {
+        
+        m <- unique(options[tolower(options) == tolower(cur)])
+        
+        if (length(m) == 1 && !identical(m, cur)) {
+          cur <- m
+          why <- c(why, sprintf(
+            "Matches the allowed option \"%s\" apart from capitalization", m))
+        }
+        
+      } else if (identical(type, "string") && identical(format, "capitalized")) {
+        
+        up <- toupper(cur)
+        if (!identical(up, cur)) {
+          cur <- up
+          why <- c(why, "The specification requires upper case")
+        }
+        
+      } else if (identical(type, "string") && identical(format, "uncapitalized")) {
+        
+        low <- tolower(cur)
+        if (!identical(low, cur)) {
+          cur <- low
+          why <- c(why, "The specification requires lower case")
+        }
+        
+      } else if (identical(type, "numeric")) {
+        
+        if (grepl("^-?[0-9]+,[0-9]+$", cur) && !grepl(",[0-9]{3}$", cur)) {
+          cur <- sub(",", ".", cur, fixed = TRUE)
+          why <- c(why, "Decimal comma changed to a decimal point")
+        }
+      }
+      
+      proposed[k] <- cur
+      reasons[k] <- paste(why, collapse = "; ")
+    }
+    
+    keep <- nzchar(reasons) & proposed != x[rows]
+    if (!any(keep)) next
+    
+    # Only keep proposals that pass every check the field has
+    test <- data.frame(proposed[keep], stringsAsFactors = FALSE)
+    names(test) <- col
+    
+    chk <- validate_dataset_field(test, field)
+    still_bad <- if (isTRUE(chk[[1]])) integer(0) else chk[[2]]$invalid_row
+    ok <- setdiff(seq_len(nrow(test)), still_bad)
+    if (length(ok) == 0) next
+    
+    found[[length(found) + 1]] <- data.frame(
+      row = as.integer(rows[keep][ok]),
+      column = col,
+      current = x[rows[keep][ok]],
+      proposed = proposed[keep][ok],
+      reason = reasons[keep][ok],
+      stringsAsFactors = FALSE
+    )
+  }
+  
+  if (length(found) == 0) {
+    return(empty)
+  }
+  
+  out <- do.call(rbind, found)
+  rownames(out) <- NULL
+  out
+}
+
+
+# Applies the proposals a person approved. A proposal is skipped if the cell no longer holds
+# the value it was made for (for example because it was edited in the meantime).
+# Returns the new dataset and the proposals that were actually applied.
+apply_fixes <- function(dataset_contents, fixes) {
+  
+  if (is.null(dataset_contents) || is.null(fixes) || nrow(fixes) == 0) {
+    return(list(data = dataset_contents, applied = fixes[0, , drop = FALSE]))
+  }
+  
+  done <- logical(nrow(fixes))
+  
+  for (i in seq_len(nrow(fixes))) {
+    
+    col <- fixes$column[i]
+    r <- fixes$row[i]
+    
+    if (!(col %in% names(dataset_contents))) next
+    if (is.na(r) || r < 1 || r > nrow(dataset_contents)) next
+    
+    now <- as.character(dataset_contents[[col]][r])
+    
+    if (!is.na(now) && identical(now, fixes$current[i])) {
+      dataset_contents[[col]][r] <- fixes$proposed[i]
+      done[i] <- TRUE
+    }
+  }
+  
+  list(data = dataset_contents, applied = fixes[done, , drop = FALSE])
+}

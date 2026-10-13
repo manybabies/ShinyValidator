@@ -3067,6 +3067,243 @@ server <- function(input, output, session) {
     )
   })
   
+  # Suggested fixes ----------------------------------------------------------------------
+  
+  empty_fix_log <- function() {
+    data.frame(
+      time = character(0),
+      action = character(0),
+      row = integer(0),
+      column = character(0),
+      from = character(0),
+      to = character(0),
+      reason = character(0),
+      stringsAsFactors = FALSE
+    )
+  }
+  
+  fix_log <- reactiveVal(empty_fix_log())
+  undo_stack <- reactiveVal(list())
+  
+  # A new dataset starts with a clean log
+  observeEvent(input$file, {
+    fix_log(empty_fix_log())
+    undo_stack(list())
+  })
+  
+  log_fixes <- function(tbl, action) {
+    
+    if (nrow(tbl) == 0) {
+      return(invisible(NULL))
+    }
+    
+    entry <- data.frame(
+      time = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+      action = action,
+      row = tbl$row,
+      column = tbl$column,
+      from = tbl$current,
+      to = tbl$proposed,
+      reason = tbl$reason,
+      stringsAsFactors = FALSE
+    )
+    
+    fix_log(rbind(fix_log(), entry))
+  }
+  
+  # Projects can switch the feature off with `allow_suggested_fixes: no`
+  fixes_enabled <- reactive({
+    cfg <- tryCatch(selected_config(), error = function(e) NULL)
+    !isFALSE(flag(cfg$allow_suggested_fixes))
+  })
+  
+  proposed_fixes <- reactive({
+    
+    req(fixes_enabled(), input$file)
+    
+    df <- edited_data()
+    req(df)
+    
+    suggest_fixes(selected_specification(), df)
+  })
+  
+  output$suggested_fixes_panel <- renderUI({
+    
+    req(input$file, fixes_enabled())
+    
+    fixes <- proposed_fixes()
+    can_undo <- length(undo_stack()) > 0
+    n_log <- nrow(fix_log())
+    
+    if (nrow(fixes) == 0 && !can_undo && n_log == 0) {
+      return(NULL)
+    }
+    
+    div(
+      class = "validation-summary",
+      role = "region",
+      `aria-label` = "Suggested fixes",
+      
+      tags$div(class = "validation-summary-title", "Suggested fixes"),
+      
+      if (nrow(fixes) > 0) {
+        tagList(
+          p(
+            sprintf(
+              "%d change%s can be made automatically. Nothing is changed until you select it and click Apply.",
+              nrow(fixes),
+              if (nrow(fixes) == 1) "" else "s"
+            )
+          ),
+          DT::DTOutput("suggested_fixes_table"),
+          br(),
+          actionButton("select_all_fixes", "Select all"),
+          actionButton("apply_fixes", "Apply selected fixes")
+        )
+      } else {
+        p("No further automatic fixes are available.")
+      },
+      
+      if (can_undo) {
+        actionButton("undo_fixes", "Undo last applied fixes")
+      },
+      
+      if (n_log > 0) {
+        tags$details(
+          style = "margin-top: 12px;",
+          tags$summary(
+            style = paste(
+              "display: inline-block; cursor: pointer; font-weight: 600;",
+              "padding: 6px 14px; border: 1px solid #888; border-radius: 4px;",
+              "background: #f5f5f5; color: #222;"
+            ),
+            sprintf("\u25B8 Show / hide change log (%d)", n_log)
+          ),
+          div(style = "margin-top: 10px;", DT::DTOutput("fix_log_table"))
+        )
+      }
+    )
+  })
+  
+  output$suggested_fixes_table <- DT::renderDT({
+    
+    fixes <- proposed_fixes()
+    req(nrow(fixes) > 0)
+    
+    shown <- data.frame(
+      Row = fixes$row,
+      Column = fixes$column,
+      Current = fixes$current,
+      Proposed = fixes$proposed,
+      Reason = fixes$reason,
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    )
+    
+    DT::datatable(
+      shown,
+      rownames = FALSE,
+      selection = "multiple",
+      options = list(pageLength = 10, dom = "tip")
+    )
+  })
+  
+  fixes_proxy <- DT::dataTableProxy("suggested_fixes_table")
+  
+  observeEvent(input$select_all_fixes, {
+    DT::selectRows(fixes_proxy, seq_len(nrow(proposed_fixes())))
+  })
+  
+  observeEvent(input$apply_fixes, {
+    
+    chosen_rows <- input$suggested_fixes_table_rows_selected
+    
+    if (length(chosen_rows) == 0) {
+      showNotification("Select at least one change to apply.", type = "warning")
+      return()
+    }
+    
+    fixes <- proposed_fixes()
+    chosen <- fixes[chosen_rows, , drop = FALSE]
+    
+    out <- apply_fixes(edited_data(), chosen)
+    
+    if (nrow(out$applied) == 0) {
+      showNotification(
+        "None of the selected cells could be changed because they were edited in the meantime.",
+        type = "warning"
+      )
+      return()
+    }
+    
+    edited_data(out$data)
+    undo_stack(c(list(out$applied), undo_stack()))
+    log_fixes(out$applied, "Applied")
+    
+    showNotification(
+      sprintf(
+        "Applied %d change%s.",
+        nrow(out$applied),
+        if (nrow(out$applied) == 1) "" else "s"
+      ),
+      type = "message"
+    )
+  })
+  
+  observeEvent(input$undo_fixes, {
+    
+    stack <- undo_stack()
+    req(length(stack) > 0)
+    
+    last <- stack[[1]]
+    undo_stack(stack[-1])
+    
+    back <- data.frame(
+      row = last$row,
+      column = last$column,
+      current = last$proposed,
+      proposed = last$current,
+      reason = "Undone by user",
+      stringsAsFactors = FALSE
+    )
+    
+    out <- apply_fixes(edited_data(), back)
+    
+    if (nrow(out$applied) == 0) {
+      showNotification(
+        "Nothing was undone because those cells have been edited since.",
+        type = "warning"
+      )
+      return()
+    }
+    
+    edited_data(out$data)
+    log_fixes(out$applied, "Undone")
+    
+    showNotification(
+      sprintf(
+        "Undid %d change%s.",
+        nrow(out$applied),
+        if (nrow(out$applied) == 1) "" else "s"
+      ),
+      type = "message"
+    )
+  })
+  
+  output$fix_log_table <- DT::renderDT({
+    
+    log <- fix_log()
+    req(nrow(log) > 0)
+    
+    names(log) <- c("Time", "Action", "Row", "Column", "From", "To", "Reason")
+    
+    DT::datatable(
+      log,
+      rownames = FALSE,
+      selection = "none",
+      options = list(pageLength = 5, dom = "tip")
+    )
+  })
   
   # Validation errors --------------------------------------------------------------------
   

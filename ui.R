@@ -1147,6 +1147,8 @@ ui <- fluidPage(
           uiOutput("errors_by_column")
         ),
         
+        uiOutput("suggested_fixes_panel"),
+        
         DTOutput("validation_preview")
       ),
       

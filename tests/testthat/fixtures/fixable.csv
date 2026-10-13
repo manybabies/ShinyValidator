@@ -1,0 +1,3 @@
+participant_id,age,score,group,notes
+P1,34,1.50,Control,
+P2,29,2.25, treatment,ok
